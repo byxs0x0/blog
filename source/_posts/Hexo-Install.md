@@ -100,6 +100,11 @@ git --work-tree=/var/blog --git-dir=/var/git/blog.git checkout -f
 chmod +x blog.git/hooks/post-receive
 chown -R git:git /var/git
 
+vi /etc/passwd # 让git用户不能shell登录
+
+/bin/bash # 将git用户的/bin/bash替换为下面字符串
+/usr/bin/git-shell
+
 ```
 
 ### 站点设置

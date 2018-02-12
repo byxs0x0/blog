@@ -19,8 +19,8 @@ tags:
 > 整个流程就是本地将 `*.md` 渲染成静态文件，然后Git推送到服务器的repository,服务器再通过 `git-hooks`同步网站根目录。
 
 
-
-# 本地环境
+# 本地建设
+### 环境部署
 本地环境是window，所以直接官网下载安装即可。
 [Node.js download](http://nodejs.cn/download/)
 [Git download](https://git-scm.com/download/win)

@@ -97,9 +97,9 @@ zip://可以访问压缩包里面的文件。当它与包含函数结合时，zi
 
 **实例**
 ```
-?file=zip://D:\zip.jpg%23REMAND.ME
+?file=zip://D:\zip.jpg%23phpinfo.txt
 
-REMAND.ME文件会被当作PHP文件执行。
+phpinfo.txt文件会被当作PHP文件执行。
 ```
 **注意**
  - 只需要是zip的压缩包即可，后缀名可以任意更改。
@@ -127,10 +127,10 @@ phar://有点类似zip://同样可以导致 `任意代码执行`。
 
 **实例**
 ```
-?file=phar://zip.jpg/REMAND.ME
-?file=phar://D:\zip.jpg/REMAND.ME
+?file=phar://zip.jpg/phpinfo.txt
+?file=phar://D:\zip.jpg/phpinfo.txt
 
-REMAND.ME文件会被当作PHP文件执行。
+phpinfo.txt文件会被当作PHP文件执行。
 ```
 **注意**
  - 压缩包可以是zip或者phar的压缩包，后缀名可以任意更改(rar，z7，bz2均无效)
@@ -259,10 +259,20 @@ environ文件存储位置已知，且environ文件可读。
 **操作**
 可以先根据尝试包含到Session文件，在根据文件内容寻找可控变量，在构造payload插入到文件中，最后包含即可。
 
+## 包含临时文件
+PHP上传文件的时候会生成一个临时文件，那么如果在具有竞争的条件下在删除临时文件之前就可以利用它。
+由于没玩过，具体看[chybeta](https://chybeta.github.io/2017/10/08/php%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB%E6%BC%8F%E6%B4%9E/)里面的介绍
+
+
+## 包含SMTP
+同样也是通过日志来完成
+[具体例子在这](https://shinpachi8.github.io/2017/02/22/lfi/#%E9%80%9A%E8%BF%87SMTP%E6%9D%A5%E5%88%A9%E7%94%A8)
+
 ## 包含xss
 >(需要allow_url_fopen=On，allow_url_include=On并且防火墙或者白名单不允许访问外网时，先在同站点找一个XSS漏洞，包含这个页面，就可以注入恶意代码了。条件非常极端和特殊- -)
 
-高端操作，挺难玩的。。
+高端姿势，待玩
+
 
 ## 包含上传文件
 如果有上传功能的话，美滋滋
@@ -326,8 +336,8 @@ include $file.".php";
 
 ####phar://
 ```
-[访问参数]   ?file=phar://REMAND.zip/phpinfo
-[拼接后]     ?file=phar://REMAND.zip/phpinfo.php
+[访问参数]   ?file=phar://zip.zip/phpinfo
+[拼接后]     ?file=phar://zip.zip/phpinfo.php
 ```
 
 ### 长度截断
@@ -389,21 +399,24 @@ php版本5.2.17，会出现warning报错
    - ..\
      - ..%c1%9c
 
+<br><br>
+
 # 防御
  - allow_url_include和allow_url_fopen最小权限化
  - 设置`open_basedir`（open_basedir 将php所能打开的文件限制在指定的目录树中）
  - 白名单限制包含文件，或者严格过滤`./\`
 
-<br><br>
+<br>
 
 # 总结
 以上记录了自己在学习PHP文件包含的实验过程和自己的理解，里面也摘录了一些大牛漂亮的总结。真心感谢师傅们的经验和总结。
-
+以及自己给自己出了一些练习题目，方便自己以后回忆。
+[php-file-include](https://github.com/byxs0x0/php-file-include)（待完成）
 
 # 参照
 [chybeta-php文件包含漏洞](https://chybeta.github.io/2017/10/08/php%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB%E6%BC%8F%E6%B4%9E/)
 [php文件包含漏洞利用总结](http://vinc.top/2016/08/25/php%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E6%80%BB%E7%BB%93/)
 [常见文件包含发生场景与防御](https://www.anquanke.com/post/id/86123)
-[本地文件包含漏洞&&PHP利用协议&&实践源码](https://github.com/Go0s/LFIboomCTF)
+[本地文件包含漏洞&&PHP利用协议&&实践源码](https://github.com/Go0s/LFIboomCTF) 推荐去练习一下
 [php伪协议实现命令执行的七种姿势](http://www.freebuf.com/column/148886.html)
 [PHP伪协议分析与应用](http://www.4o4notfound.org/index.php/archives/31/)

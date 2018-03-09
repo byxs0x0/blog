@@ -7,8 +7,8 @@ tags:
 
 # 概述
 大部分站点都具有文件上传功能，例如头像更改，文章编辑，附件上传等等。如果上传没有经过合理严谨的验证，或者服务器没有经过安全的配置，都可能导致文件上传漏洞。而文件上传漏洞会导致网站被控制甚至服务器沦陷。
-[靶机代码在这]()
-
+[靶机代码在这](https://github.com/byxs0x0/php-file-upload)
+<br>
 # 文件上传验证流程
 在文件上传功能一般会在前端做后缀名验证和对HTTP报文中几个关键点做验证。
  - 客户端JavaScript验证
@@ -17,6 +17,7 @@ tags:
  - 服务端文件扩展名验证
  - 服务器文件内容验证
 
+<br>
 ## 客户端验证
 通常是用JavaScript代码来检测扩展名是否合法，来达到验证。
 
@@ -43,6 +44,7 @@ function checkUpload(fileobj){
  - 修改JavaScript
  去修改其中关键的检测函数，或者直接通过`firebug`或`noscript`插件禁用JavaScript。
 
+<br>
 ## 服务端验证
 
 ### 目录路径检测
@@ -83,6 +85,7 @@ if(isset($_POST["submit"])){
    - uploads/.asp/ (uploads/.asp/shell.jpg)
    - uploads/shell.asp; (uploads/shell.asp;shell.jpg)
 
+<br>
 ### MIME类型检测
 检测请求报文中`Content-Type`的值是否在允许的范围中。
 
@@ -115,6 +118,7 @@ if(isset($_POST["submit"])){
  - `Content-Type: image/jpg`
  - `Content-Type: image/png`
 
+<br>
 ### 文件扩展名检测
 检测文件的扩展名是否在黑名单，或者白名单中。
 #### 黑名单
@@ -152,7 +156,7 @@ if(isset($_POST["submit"])){
  - 后缀名大小写，例如pHp
  - 寻找黑名单中没有被禁止的文件类型
  以下文件同样会被解析
-   - php|php2|php3|php4|php5
+   - php|php2|php3|php4|php5  (好像只能基于debian和ubuntu的apt-get安装,否则是不存在该类型漏洞)
    - asp|aspx|asa|cer
    - exe|exee
 
@@ -195,6 +199,7 @@ if(isset($_POST["submit"])){
 **绕过方法**
 从操作系统特性和服务器解析漏洞或其他姿势来思考。
 
+<br>
 ### 文件内容检测
 图片格式往往不是根据文件后缀名去做判断的。文件头是文件开头的一段二进制，不同的图片类型，文件头是不同的。文件头又称文件幻数。
 
@@ -230,16 +235,27 @@ Windows用户必须在php.ini中启用php_mbstring.dll和php_exif.dll DLL。必�
 **图像渲染测试**
 图像渲染测试是直接用代码来测试图像是否能呈现，如果是自己伪造的文件头或者篡改图片的内容，都可能让图片本身不能正常显示。
 那么其中的绕过方法，其实是在加入代码的同时不破坏图片。
-`不过自己简单测试，直接在图片结尾加入代码，图片同样也能正常渲染。`
 
 **二次渲染**
 >将你上传的文件中属于图片部分的数据抓取出来，再使用自己的API或者函数重新将这张图片生成出来保存在服务端
 
 我理解的二次渲染过程，比如`加上水印`或者`生成缩略图`这样的过程。
 
+**注意**
+如果过滤了内容中<?php，可是使用其他标记
+ - `<?php ?>`
+ - `<? ?>` (开启short_open_tag)
+ - `<% %>` (开启asp_tags)
+ - `<script language="php"></script>`
+
+<br><br>
+
+
 # WAF绕过
 参照他[我的WafBypass之道（upload篇）](https://paper.seebug.org/219/)
 自己还没做过实验！！！
+<br><br>
+
 
 # 利用操作系统特性
 ## window特殊字符
@@ -264,7 +280,7 @@ Windows用户必须在php.ini中启用php_mbstring.dll和php_exif.dll DLL。必�
 
 还有一种姿势，利用`file.php:jpg`生成空php文件，在利用`file.<<<`来覆盖。
 参考这篇例子[当php懈垢windows通用上传缺陷](https://ctolib.com/topics-88860.html)
-
+<br><br>
 # 利用服务器解析漏洞
 服务器解析漏洞是在某种特定的场合下，一些文件被iis、apache、nginx等解析为脚本文件并执行产生的漏洞。
 
@@ -321,11 +337,12 @@ PHP+nginx默认是以cgi的方式去运行，当用户配置不当，会导致�
 2.访问`url/shell.jpg[0x20][0x00].php`
 (两个中括号中的数字是用Burp在Hex界面中更改)
 ```
-
+<br><br>
 # 利用CMS、编辑器漏洞
  - 寻找CMS中文件上传的CVE
  - 看文件上传功能是否是编辑器提供，如果是寻找这个版本编辑器是否存在漏洞。
 
+<br><br>
 # 其他利用
 
 ## %00截断
@@ -352,16 +369,22 @@ SetHandler application/x-httpd-php
 如果文件上传验证过程是，先将文件保存在本地，然后在去验证文件是否符合验证标准，如果不符合在删除。那么借着删除的空隙，在删除之前把脚本执行了，遍可以执行任意代码了。当然执行脚本必然是利用脚本去实现。
 [还有一个类似的例子](https://chybeta.github.io/2017/08/22/XMAN%E5%A4%8F%E4%BB%A4%E8%90%A5-2017-babyweb-writeup/)
 
+## 双文件上传
+如果代码存在bug，能同时上传多个文件，但是校验时只对第一个上传的文件进行校验，便可以导致双文件绕过。
+
+
+<br>
 # 图片木马制作
 window下cmd中执行`copy /b pic.jpg+shell.php`，将shell.php的内容加到pic.jpg结尾。并且图像合并必须使用二进制(/b)。
 注：直接将代码放到结尾也一样，至少我的实验结果是这样。
-
+<br>
 # 防御
  - 限制图片目录的权限。(设置不可执行脚本)
  - 文件验证中使用白名单验证+文件名重命名等多种方式验证。
  - 对文件内容进行校验。
  - 对服务器对安全配置。
 
+<br>
 # 总结思路
 以上都是从各种文章中总结实验下的内容，借助这个过程把心里的思路好好的理一下。感谢师傅们的经验。
 
@@ -372,6 +395,7 @@ window下cmd中执行`copy /b pic.jpg+shell.php`，将shell.php的内容加到pi
  - 从服务器解析漏洞思考
  - 从其他姿势思考
 
+<br>
 # 参照
  - [文件上传漏洞（绕过姿势）](https://thief.one/2016/09/22/%E4%B8%8A%E4%BC%A0%E6%9C%A8%E9%A9%AC%E5%A7%BF%E5%8A%BF%E6%B1%87%E6%80%BB-%E6%AC%A2%E8%BF%8E%E8%A1%A5%E5%85%85/)
  - [文件上传绕过姿势总结](http://www.cnnetarmy.com/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%BB%95%E8%BF%87%E5%A7%BF%E5%8A%BF%E6%80%BB%E7%BB%93/)

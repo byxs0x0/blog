@@ -1,12 +1,15 @@
 ---
 title: php函数漏洞小结
 date: 2018-03-06 15:39:08
+categories: Web
 tags:
  - phpsec
+ - ctf
 ---
-## PHP函数漏洞
-<br>
 
+记录一下自己学习中遇见的php函数漏洞
+<!-- more -->
+<br>
 ### ereg()
 `int ereg ( string \$pattern , string \$string [, array &\$regs ] )`
 用 pattern 的规则来解析比对字符串 string，比对结果返回的值放在数组参数 regs 之中。若省略参数 regs，则只是单纯地比对，找到则返回值为 true。

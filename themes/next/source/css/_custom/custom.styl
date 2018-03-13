@@ -1,0 +1,53 @@
+// Custom styles.
+
+// 链接
+.post-body a{
+	color: #f75357;
+	border-bottom: 1px solid #fff;
+	&:hover{
+		border-bottom: 1px solid #f75357;
+	}
+}
+.post-button a{
+	color: #555;
+	border: 2px solid #555;
+	&:hover{
+		border: 2px solid #555;
+	}
+}
+// 代码``
+code{
+    color: #c7254e;
+    background: #f9f2f4;
+    font-size: 14px;
+}
+// 标题
+.post-body {
+	h1, h2, h3, h4, h5, h6{
+		border-bottom: none;
+	}
+	h1, h2{
+		margin-bottom: 20px;
+	}
+	h3::before, h4::before, h5::before, h6::before{
+		content: "#";
+		margin-right: 2px;
+		color: #f75357;
+		font: 1em -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB",STHeiti,"Microsoft YaHei","Microsoft JhengHei","Source Han Sans SC","Noto Sans CJK SC","Source Han Sans CN","Noto Sans SC","Source Han Sans TC","Noto Sans CJK TC","WenQuanYi Micro Hei",SimSun,sans-serif;
+		font-weight: bold;
+	}
+}
+
+// 自定义页脚跳动的心样式
+@keyframes heartAnimate {
+    0%,100%{transform:scale(1);}
+    10%,30%{transform:scale(0.9);}
+    20%,40%,60%,80%{transform:scale(1.1);}
+    50%,70%{transform:scale(1.1);}
+}
+#heart {
+    animation: heartAnimate 1.33s ease-in-out infinite;
+}
+.with-love {
+    color: rgb(255, 113, 168);
+}

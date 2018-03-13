@@ -1,14 +1,15 @@
 ---
 title: 关于PHP伪造IP或来源地址
 date: 2018-02-06 16:29:46
+categories: Web
 tags:
- - php-sec
+ - phpsec
  - ctf
 ---
-# 关于PHP伪造IP或来源地址
 
 做了些关于伪造IP的CTF题目，看了些别人的文章，稍微自己总结一下
 
+<!-- more -->
 ----------
 ### 实验环境
 服务器操作系统：window

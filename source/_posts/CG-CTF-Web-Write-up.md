@@ -1,16 +1,21 @@
 ---
 title: CG-CTF Web Write up
 date: 2018-02-17 12:49:24
+categories: Write Up
 tags:
  - ctf
  - wp
 ---
 [CG-CTF](https://cgctf.nuptsast.com)
 ---原[南京邮件大学攻防训练平台](http://ctf.nuptzj.cn)
+
+<!-- more -->
+
 ## web
+
 ### 签到题
 进入页面，右键源代码，得到Flag
-<Br />
+<br>
 ### md5 collision
 ```php
 $md51 = md5('QNKCDZO');
@@ -31,7 +36,7 @@ url?a=s878926199a
 
 md5("QNKCDZO")==md5("s878926199a") //true
 ```
-
+table
 <Br />
 ### 签到2
 看见界面，得知口令，输入框有个前端限制

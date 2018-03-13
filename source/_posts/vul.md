@@ -1,12 +1,15 @@
 ---
 title: CTF-WEB题目链接
 date: 2018-03-07 10:28:07
+categories: CTF
 tags:
   - vul
   - ctf
 ---
 里面合集了CTF平台中WEB的题目，并且做了简单的分类，为了方便后期教学，能更方便的找到题目去训练。  
 **鼠标移到链接上，可以查看tips**
+
+<!-- more -->
 
 # 平台
 [CG-CTF](https://cgctf.nuptsast.com/challenges#Web) -- [南京邮电大学网络攻防训练平台](http://ctf.nuptzj.cn/challenges)

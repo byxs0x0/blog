@@ -1,25 +1,28 @@
 ---
 title: 我的Hexo搭建方案
 date: 2018-02-03 20:42:08
+categories: Other
 tags:
  - blog
 ---
+
 看了别人博客目录，感觉别人成长真的迅速，跟飞一样，说真的，对自己很打击，自己的状态也不应该如此。
 在曾经也懵懵懂懂学了一些东西，但是现在都回想不起具体的内容，只有刻画在脑子才能依稀想起。
 所以想接下来把自己的所学或者积累和经验书写在自己的博客里面，看看自己的博客就能鞭策自己，也方便自己复习以前的知识。
 当然能给到大家帮助，那是最好的。
 开心就好
 
--------
+<!-- more -->
+
 记录一下自己搭建博客的整个过程，方便以后自己复现。
 参考了这篇文章的博客架构：[阿里云VPS搭建自己的的Hexo博客](https://segmentfault.com/a/1190000005723321)
 
-# 博客架构
+## 博客架构
 
 > 整个流程就是本地将 `*.md` 渲染成静态文件，然后Git推送到服务器的repository,服务器再通过 `git-hooks`同步网站根目录。
 
 
-# 本地建设
+## 本地建设
 ### 环境部署
 本地环境是window，所以直接官网下载安装即可。
 [Node.js download](http://nodejs.cn/download/)
@@ -56,14 +59,15 @@ deploy:
 
 ### 修改主题
 [archer](https://github.com/fi3ework/hexo-theme-archer)
+[2018-3-13]更换了NEXT主题，因为各种原因
 主题有很多可选的，自己用的舒服就好，该`repo`中也把使用方法写的比较清楚
 这边有个坑，我自己睬到了，就是使用该主题之后，默认是采用主题里面的`_config.yml`来配置站点基本信息。
 
 
 
 
-# 服务器建设
-CentOS 6
+## 服务器建设
+操作系统：CentOS 6
 ### 环境部署
 
 ```python
@@ -141,7 +145,7 @@ yum install nginx -y
 
 # 配置 nginx
 # /etc/nginx/nginx.conf文件中http节点下，增加以下代码
-	server {
+    server {
         listen       80 default_server;
         listen       [::]:80 default_server;
         server_name  _;
@@ -172,7 +176,7 @@ service nginx restart
 ```
 
 
-# 使用流程
+## 使用流程
 使用atom写完之后，图片手动脱进目录，然后`hexo clean && hexo g -d`就行，过程就是
 根据新的`.md`渲染成新的静态站点，在`push`自己的git服务器，git服务器接受到了后会根据`git-hooks`中钩子的设置，自动将`push`来的站点同步到网站根目录
 
@@ -180,12 +184,12 @@ service nginx restart
 
 
 
-# 备份源文件
+## 备份源文件
 因为hexo是建设在本地的，也就是源文件在本地，如果自己电脑gg，就不好说了，所以我自己做了一步操作，就直接把源文件和主题`push`自己的github里面，做个简单备份。
 
 
 
-# markdown编写
+## markdown编写
 在`notyeat`推荐下使用`atom`本地编写，并且安装了下面插件，具体建设`google`一下
 ```python
 atom-simplified-chinese-menu # 中文包，理解不了转换下看看
@@ -197,7 +201,7 @@ markdown-image-paste # 贴图，记得把_config.yml中的post_asset_folder设�
 
 
 
-# 问题解决
+## 问题解决
 ### [DEP0061] DeprecationWarning: fs.SyncWriteStream is deprecated.
 hexo 命令都会触发这个error
 [解决思路](http://rangerzhou.top/2017/07/27/Hexo%E5%8D%9A%E5%AE%A2%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9/)

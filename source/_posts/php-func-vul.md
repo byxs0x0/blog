@@ -10,12 +10,17 @@ tags:
 记录一下自己学习中遇见的php函数漏洞
 <!-- more -->
 <br>
-### ereg()
+### ereg()与eregi()
 `int ereg ( string \$pattern , string \$string [, array &\$regs ] )`
 用 pattern 的规则来解析比对字符串 string，比对结果返回的值放在数组参数 regs 之中。若省略参数 regs，则只是单纯地比对，找到则返回值为 true。
-**以下特性eregi()函数也拥有**
 
-**ereg()的%00截断**
+**传入数组返回为NULL**
+```php
+// url?id[]=1
+var_dump(@ereg("^[a-zA-Z0-9]+$", $_GET['id'])); // NULL
+```
+
+**%00截断**
 ```php
 例子与用法如下
 var_dump(@ereg("^[a-zA-Z0-9]+$", $_GET['id']));

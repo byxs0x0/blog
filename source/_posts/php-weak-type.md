@@ -34,31 +34,65 @@ var_dump(123 == '  123abcd');  // true
 ```
 
 <br>
-### Hash比较
+### 科学计数法比较
 ```php
-比较运算中，遇到0e\d+的字符串时，会将这种字符串解析为科学计数法。
+比较运算中，遇到0e\d+开头的字符串时，会将这种字符串解析为科学计数法。
 '0e123' > 0*10^123 == 0
-var_dump('0e123' == 0); // true
-var_dump('0e123' == '0e456'); // true
-var_dump('0e123' == '0e123abc'); // false
+var_dump('0e1' == 0); // true
+var_dump('0e1' == '0e456'); // true
+var_dump('0e1' == '0e1abc'); // false
+
+0e\d+开头字符串和数字比较,字符串中0e\d+后面部分会被忽略
+'1e1abc' = '1e1' = 1*10^1 = 10
+var_dump('1e1abc' == '10'); // false
+var_dump('1e1abc*&^' == 10); // true
 ```
 [0e开头](http://www.cnblogs.com/Primzahl/p/6018158.html)
 
 <br>
 
-### 16进制数进行比较
+### 16进制数比较
 ```php
 16进制数会自动转换为整数类型
 var_dump(0xff); // 255
 var_dump('0xff'); // '0xff'
 var_dump(intval('0xff')); // 0
 
-0x开头（符合16进制数格式）的字符串与其他类型比较时，会转换为同一进制比较
+0x开头（符合16进制数格式）的字符串比较时，会转换为10进制，在进行比较
 var_dump('0xff' == 255);   // true
 var_dump('0xff' == '255'); // true
 var_dump(0x0 == 'aaaa');   // true
 ```
 <br>
+
+### 数组之间的比较
+
+#### 数组与数组
+数组之间比较，如果两者key对应的value都相同,那么两者相同，其他相反。
+```php
+$arr1 = array('a' => 1, 'b' => 2, 'c' => 3);
+$arr2 = array('a' => 1, 'b' => 3, 'c' => 2);
+$arr3 = array('b' => 2, 'a' => 1, 'c' => 3);
+var_dump($arr1 == $arr2); // false
+var_dump($arr1 == $arr3); // true
+
+$arr4 = array(1, 2, 3);
+$arr5 = array(1, 3, 2);
+var_dump($arr4); // array(3) { [0]=> int(1) [1]=> int(2) [2]=> int(3) }
+var_dump($arr5); // array(3) { [0]=> int(1) [1]=> int(3) [2]=> int(2) }
+var_dump($arr4 == $arr5); // false  key对应的value不同，所以不相等
+```
+
+#### 一个奇怪的现象
+在实验和学习过程中发现了一个奇怪的现象，不知道如何解释，大佬求解释
+```php
+在这个比较过程中，数组都会比字符串或者数字大
+$arr = array(1);
+var_dump($arr > 9999999); // true
+var_dump($arr > "abcadfas^&*^*("); //true
+```
+
+
 
 ## 内置函数的松散性
 ### intval()

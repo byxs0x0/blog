@@ -198,7 +198,7 @@ markdown-preview-enhanced # 可视化+同时滚动
 markdown-table-editor # 表格
 markdown-image-paste # 贴图，记得把_config.yml中的post_asset_folder设置为true，new文章会自动创建一个文件夹
 ```
-
+重装电脑后在安装的时候出了问题在`git bash`中执行`apm -v`会报错，在powershell或cmd可以执行。在atom中无法安装插件，报错信息中提示运行`apm install --check`,运行了就可以安装了。
 
 
 ## 问题解决

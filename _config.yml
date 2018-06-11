@@ -4,16 +4,16 @@
 
 # Site
 title: byxs0x0's Blog
-subtitle: 
+subtitle:
 description: description
 author: byxs0x0
 language: zh-Hans
-timezone: 
+timezone:
 
 # URL
 # URL
 ## If your site is put in a subdirectory, set url as 'http://yoursite.com/child' and root as '/child/'
-url: http://yoursite.com
+url: http://byxs0x0.cn
 root: /
 permalink: :year/:month/:day/:title/
 permalink_defaults:
@@ -52,7 +52,7 @@ index_generator:
   path: ''
   per_page: 10
   order_by: -date
-  
+
 archive_generator:
   per_page: 20
   yearly: true

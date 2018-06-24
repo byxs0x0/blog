@@ -1,5 +1,5 @@
 ---
-title: MSSQLI总结
+title: MSSQLI备忘录
 date: 2018-04-14 20:43:04
 categories: Web
 tags:

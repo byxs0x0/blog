@@ -28,6 +28,7 @@ show_source(__FILE__);
 
 <br>
 ### 爆破-2
+
 ```php
 include "flag.php";
 $a = @$_REQUEST['hello'];
@@ -38,7 +39,8 @@ show_source(__FILE__);
 `hello=);print_r(file('flag.php')`，最后凭借的结果就是`eval( "var_dump(hello=);print_r(file('flag.php'));");`
 直接打印`flag.php`的内容。
 
-<br>
+
+
 
 ### 爆破-3
 ```php

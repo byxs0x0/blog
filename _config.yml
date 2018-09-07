@@ -36,6 +36,7 @@ external_link: true # Open external links in new tab
 filename_case: 0
 render_drafts: false
 post_asset_folder: true
+true_asset_folder: true
 relative_link: false
 future: true
 highlight:
@@ -101,6 +102,19 @@ jsonContent:
     categories: false
     tags: true
 
+# search
+search:
+  path: search.xml
+  field: post
+  format: html
+  limit: 10000
+
+# algolia:
+#   applicationID: 'X9UE40EIMJ'
+#   apiKey: '9ead029e72dca2afe438d3772a077aef'
+#   indexName: 'hexo-blog'
+
+
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
 #deploy:
@@ -115,7 +129,17 @@ jsonContent:
 #    extend_dirs: /
 #    ignore_hidden: false
 deploy:
-  type: git
-  repo: git@104.194.80.107:/var/git/blog.git
-  branch: master
-  message: '站点更新:{{now("YYYY-MM-DD HH/mm/ss")}}'
+  - type: git
+    repo: git@104.194.80.107:/var/git/blog.git
+    branch: master
+    message: '站点更新:{{now("YYYY-MM-DD HH/mm/ss")}}'
+  - type: git
+    repo: git@github.com:byxs0x0/blog.git
+    branch: master
+    message: '站点更新:{{now("YYYY-MM-DD HH/mm/ss")}}'
+    extend_dirs: /
+    ignore_hidden: false
+    ignore_pattern:
+        public: .
+        .git: .
+

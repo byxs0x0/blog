@@ -39,9 +39,9 @@ md5()中第二个参数是如果被设置为 TRUE，那么 MD5 报文摘要将�
 ```php
 var_dump(md5("ffifdyop")); //string(32) "276f722736c95d99e921722cf9ed621c"
 // 上面的字符串丢到16进制转换为字符串的在线工具中，也是得到相同的结果
-var_dump(md5("ffifdyop", true)); // string(16) "'or'6蒥欓!r,b"
+var_dump(md5("ffifdyop", true)); // string(16) "'or'6蒥欓!r,BS"
 ```
-如果结果是这样最后拼凑的sql语句会变成`SELECT * FROM admin WHERE username = 'admin' and password = ''or'6蒥欓!r,b'`
+如果结果是这样最后拼凑的sql语句会变成`SELECT * FROM admin WHERE username = 'admin' and password = ''or'6蒥欓!r,BS'`
 以上条件始终成立。
 
 

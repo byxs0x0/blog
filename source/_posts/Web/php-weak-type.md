@@ -178,9 +178,13 @@ var_dump(in_array("2cc", $array)); // false
 var_dump(is_numeric(123));       # true
 var_dump(is_numeric('123'));     # true
 var_dump(is_numeric('123abc'));  # false
-对16进制也能检测
+
+// 对16进制也能检测
 var_dump(is_numeric(0x123));     # true
 var_dump(is_numeric('0x123'));   # true
+// 对科学技术法也能检测
+var_dump(is_numeric('1e1'));     # true
+var_dump(is_numeric('0e1'));     # true
 ```
 
 [实例](http://www.freebuf.com/articles/web/55075.html)
@@ -191,6 +195,12 @@ var_dump(is_numeric('0x123'));   # true
 ## 总结
 在看到过的文章中一个非常好的总结
 **在所有php认为是int的地方输入string，都会被强制转换**
+也说一个自我的总结
+在上述中出现几种情况
+1. 某些函数`strcmp strpos md5`在传入数组会发生奇怪的问题，然后返回NULL
+2. `switch in_array`其实是在内部产生了不同类型的比较，从而引发了类型转换问题
+3. `is_numeric intval`就是在PHP认为是int的地方输入string，都会被强制转换
+
 
 <br>
 

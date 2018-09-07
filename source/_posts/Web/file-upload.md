@@ -16,10 +16,10 @@ description:
 # 文件上传验证流程
 在文件上传功能一般会在前端做后缀名验证和对HTTP报文中几个关键点做验证。
  - 客户端JavaScript验证
- - 服务端目录路径检测
  - 服务端MIME类型验证
  - 服务端文件扩展名验证
  - 服务器文件内容验证
+
 
 <br>
 ## 客户端验证
@@ -51,47 +51,10 @@ function checkUpload(fileobj){
 <br>
 ## 服务端验证
 
-### 目录路径检测
-其实就是开发人员在写代码时把`文件保存的路径`也放在了请求中，成为了用户的可控变量。
-
-**示例代码**
-```php
-if(isset($_POST["submit"])){
-    // 检测Content-type
-    if($_FILES['fupload']['type'] != "image/gif")
-    {
-        exit("Only upload GIF images.");
-    }
-    // 基本参数
-    $file_name = $_FILES['fupload']['name']; // 文件名
-    $file_ext  = substr($file_name, strrpos($file_name,'.') + 1); //文件后缀
-    $file_tmp  = $_FILES['fupload']['tmp_name']; //临时文件
-    $target_path = $_REQUEST["path"].$file_name; //存储路径与名称
-    // 检测后缀名
-    if($file_ext!="gif"){
-        exit("Only upload GIF images.");
-    }
-    // 移动临时文件
-    if(move_uploaded_file($file_tmp, $target_path)){
-        echo "<pre>{$target_path} succesfully uploaded!</pre>";
-    }
-    else{
-        echo '<pre>upload error</pre>';
-    }
-}
-```
-
-**利用姿势**
- - 利用%00截断，在代码验证的时候是取`.gif`来进行，但是最后保存在本地时，%00会截断文件名，导致最终保存结果为`uploads/php.php`
-![ 00-php](00-php.png)
- - 在asp中可以结合IIS解析漏洞，巧妙构造出文件名。例如
-   - uploads.asp/  (uploads.asp/shell.jpg)
-   - uploads/.asp/ (uploads/.asp/shell.jpg)
-   - uploads/shell.asp; (uploads/shell.asp;shell.jpg)
-
-<br>
 ### MIME类型检测
 检测请求报文中`Content-Type`的值是否在允许的范围中。
+>在响应中，Content-Type标头告诉客户端实际返回的内容的内容类型。
+>在通过HTML form提交生成的POST请求中，请求头的Content-Type由`<form>`元素上的enctype属性指定
 
 **示例代码**
 ```php
@@ -350,8 +313,64 @@ PHP+nginx默认是以cgi的方式去运行，当用户配置不当，会导致�
 # 其他利用
 
 ## %00截断
-当上传的文件名为`shell.php[0x00].jpg`([0x00]在Burp中Hex界面更改，不是字符串)。当代码验证后缀名时，会取`.jpg`。从而通过验证，但是将文件保存在指定目录时，0x00会将文件名阶段，从而保存的文件名实际为`shell.php`。
-此利用手法好像只在asp程序中。(php5.2.17中没成功)
+>截断的产生核心，就是chr(0)字符 。
+>这个字符即不为空(Null)，也不是空字符("")，更不是空格！
+>当程序在输出含有chr(0)变量时，chr(0)后面的数据会被停止，换句话说，就是误把它当成结束符，后面的数据直接忽略，这就导致漏洞产生的原因。
+
+当上传的文件名为`shell.php[0x00].jpg`([0x00]在Burp中Hex界面更改，不是字符串)。当代码验证后缀名时，会取`.jpg`。从而通过验证，但是将文件保存在指定目录时，0x00会将文件名截断，从而保存的文件名实际为`shell.php`。
+**在php 5.3.4中修复了0字符，但是在之前的版本中仍然危害巨大。**
+
+<br/>
+**注意**
+在PHP5.2.17中测试发现如果上传的HTTP请求中的filename字段为`shell.php[0x00].jpg`，那么`$_FILES`中的name是`shell.php`，说明在接收请求的时候便产生了截断。
+但是在GET请求中带有`%00`，是不会在接收请求产生截断的。
+具体原因也不知道，需要后期探究。
+
+<br/>
+### 通过文件上传目录截断例子
+其实就是开发人员把`文件保存的路径`成为了用户的可控变量。
+
+利用前提：
+ - php<5.3.4
+ - magic_quotes_gpc=Off (不然会把chr(0)转义)
+
+**示例代码**
+```php
+if(isset($_POST["submit"])){
+    // 检测Content-type
+    if($_FILES['fupload']['type'] != "image/gif")
+    {
+        exit("Only upload GIF images.");
+    }
+    // 基本参数
+    $file_name = $_FILES['fupload']['name']; // 文件名
+    $file_ext  = substr($file_name, strrpos($file_name,'.') + 1); //文件后缀
+    $file_tmp  = $_FILES['fupload']['tmp_name']; //临时文件
+    $target_path = $_REQUEST["path"].$file_name; //存储路径与名称
+    // 检测后缀名
+    if($file_ext!="gif"){
+        exit("Only upload GIF images.");
+    }
+    // 移动临时文件
+    if(move_uploaded_file($file_tmp, $target_path)){
+        echo "<pre>{$target_path} succesfully uploaded!</pre>";
+    }
+    else{
+        echo '<pre>upload error</pre>';
+    }
+}
+```
+
+**利用姿势**
+ - 利用%00截断，在代码验证的时候是取`.gif`来进行，但是最后保存在本地时，%00会截断文件名，导致最终保存结果为`uploads/php.php`
+![ 00-php](00-php.png)
+ - 在asp中可以结合IIS解析漏洞，巧妙构造出文件名。例如
+   - uploads.asp/  (uploads.asp/shell.jpg)
+   - uploads/.asp/ (uploads/.asp/shell.jpg)
+   - uploads/shell.asp; (uploads/shell.asp;shell.jpg)
+
+<br>
+
 
 ## apache配置不当
  - 在apache的配置文件中如果拥有`AddHandler php5-script .php`,则即使`shell.php.jpg`也会被当作php去执行。
